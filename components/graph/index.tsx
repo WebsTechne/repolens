@@ -1,0 +1,84 @@
+"use client"
+
+import { useState, useCallback } from "react"
+import {
+  ReactFlow,
+  applyNodeChanges,
+  applyEdgeChanges,
+  addEdge,
+  Background,
+  BackgroundVariant,
+  Controls,
+  ControlButton,
+  MiniMap,
+} from "@xyflow/react"
+import "@xyflow/react/dist/style.css"
+import { useTheme } from "next-themes"
+import { getLayoutedElements } from "@/lib/layout"
+import { mockEdges, mockNodes } from "@/lib/mock-data"
+
+import { FileNode } from "@/components/graph/file-node"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { MagicWand01Icon } from "@hugeicons/core-free-icons"
+
+const nodeTypes = {
+  fileNode: FileNode,
+}
+
+export default function Graph() {
+  const { resolvedTheme } = useTheme()
+
+  if (!resolvedTheme) return null
+
+  const colorMode = resolvedTheme as "light" | "dark"
+  return <GraphContent colorMode={colorMode} />
+}
+
+function GraphContent({
+  colorMode,
+}: {
+  colorMode: "light" | "dark" | "system" | undefined
+}) {
+  const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
+    mockNodes,
+    mockEdges
+  )
+
+  const [nodes, setNodes] = useState(layoutedNodes)
+  const [edges, setEdges] = useState(layoutedEdges)
+
+  const onNodesChange = useCallback(
+    (changes) =>
+      setNodes((nodesSnapshot) => applyNodeChanges(changes, nodesSnapshot)),
+    []
+  )
+  const onEdgesChange = useCallback(
+    (changes) =>
+      setEdges((edgesSnapshot) => applyEdgeChanges(changes, edgesSnapshot)),
+    []
+  )
+  const onConnect = useCallback(
+    (params) => setEdges((edgesSnapshot) => addEdge(params, edgesSnapshot)),
+    []
+  )
+
+  return (
+    <div style={{ width: "100vw", height: "100vh" }}>
+      <ReactFlow
+        defaultEdgeOptions={{ type: "straight", animated: true }} // note to team try out smoothstep and default
+        nodeTypes={nodeTypes}
+        colorMode={colorMode}
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        fitView
+      >
+        <Background variant={BackgroundVariant.Dots} />
+
+        <MiniMap nodeStrokeWidth={3} />
+      </ReactFlow>
+    </div>
+  )
+}

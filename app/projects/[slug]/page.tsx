@@ -1,4 +1,5 @@
 import { AppHeader } from "@/components/app-header"
+import Graph from "@/components/graph"
 import { AppSidebar } from "@/components/sidebar/app-sidebar"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 
@@ -13,7 +14,9 @@ export default async function ProjectPage({
       <AppSidebar slug={slug} />
       <SidebarInset>
         <AppHeader slug={slug} />
-        <main className="">Project: {slug}</main>
+        <main className="h-[calc(100dvh-50px)] w-full overflow-clip">
+          <Graph />
+        </main>
       </SidebarInset>
     </SidebarProvider>
   )

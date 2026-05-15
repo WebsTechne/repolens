@@ -13,10 +13,17 @@ export const getProject = (slug: string) => {
   return project
 }
 
-import { ComponentProps } from "react"
+import { ComponentProps, useState, useEffect } from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Folder03Icon } from "@hugeicons/core-free-icons"
+import {
+  ChevronDown,
+  Folder01Icon,
+  Folder02Icon,
+  Folder03Icon,
+  File02Icon,
+} from "@hugeicons/core-free-icons"
 import { SearchForm } from "./search-form"
 import {
   Sidebar,
@@ -30,137 +37,265 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "../ui/collapsible"
 
-// This is sample data.
-const data = {
-  versions: ["1.0.1", "1.1.0-alpha", "2.0.0-beta1"],
-  navMain: [
+// ============================================================================
+// FILE TREE TYPES & DATA STRUCTURE
+// ============================================================================
+
+/**
+ * Represents a file in the tree
+ * @property type - Discriminator to identify this as a file
+ * @property name - Display name of the file (e.g., "index.tsx")
+ * @property path - Full path to the file (e.g., "components/graph/index.tsx")
+ */
+type FileTreeItem = {
+  type: "file"
+  name: string
+  path: string
+}
+
+/**
+ * Represents a folder in the tree
+ * @property type - Discriminator to identify this as a folder
+ * @property name - Display name of the folder (e.g., "graph")
+ * @property path - Full path to the folder (e.g., "components/graph")
+ * @property isExpanded - Optional UI state for collapsible folders
+ * @property children - Array of nested files and folders
+ */
+type FolderTreeItem = {
+  type: "folder"
+  name: string
+  path: string
+  isExpanded?: boolean
+  children: TreeItem[]
+}
+
+/**
+ * Union type representing any item in the file tree
+ * Use the 'type' property to discriminate between files and folders
+ */
+type TreeItem = FileTreeItem | FolderTreeItem
+
+/**
+ * FILE TREE DATA STRUCTURE
+ *
+ * This object represents your project's file/folder hierarchy.
+ *
+ * Structure:
+ * - Root is always a FolderTreeItem
+ * - Each folder can contain nested folders and files via the 'children' array
+ * - Files are leaf nodes (no children)
+ * - Use 'isExpanded' to control folder open/close state in UI
+ *
+ * Usage Example:
+ * ```tsx
+ * // Recursive component to render the tree
+ * function TreeNode({ item }: { item: TreeItem }) {
+ *   if (item.type === "file") {
+ *     return <div>📄 {item.name}</div>
+ *   }
+ *
+ *   return (
+ *     <div>
+ *       <div>📁 {item.name}</div>
+ *       {item.isExpanded && (
+ *         <div style={{ paddingLeft: 20 }}>
+ *           {item.children.map((child) => (
+ *             <TreeNode key={child.path} item={child} />
+ *           ))}
+ *         </div>
+ *       )}
+ *     </div>
+ *   )
+ * }
+ * ```
+ */
+const fileTree: FolderTreeItem = {
+  type: "folder",
+  name: "components",
+  path: "components",
+  isExpanded: true,
+  children: [
     {
-      title: "Getting Started",
-      url: "#",
-      items: [
+      type: "folder",
+      name: "graph",
+      path: "components/graph",
+      isExpanded: true,
+      children: [
         {
-          title: "Installation",
-          url: "#",
+          type: "file",
+          name: "file-node.tsx",
+          path: "components/graph/file-node.tsx",
         },
         {
-          title: "Project Structure",
-          url: "#",
+          type: "file",
+          name: "index.tsx",
+          path: "components/graph/index.tsx",
+        },
+        {
+          type: "folder",
+          name: "utils",
+          path: "components/graph/utils",
+          isExpanded: false,
+          children: [
+            {
+              type: "file",
+              name: "helpers.ts",
+              path: "components/graph/utils/helpers.ts",
+            },
+            {
+              type: "file",
+              name: "constants.ts",
+              path: "components/graph/utils/constants.ts",
+            },
+          ],
         },
       ],
     },
     {
-      title: "Build Your Application",
-      url: "#",
-      items: [
+      type: "folder",
+      name: "sidebar",
+      path: "components/sidebar",
+      isExpanded: false,
+      children: [
         {
-          title: "Routing",
-          url: "#",
+          type: "file",
+          name: "app-sidebar.tsx",
+          path: "components/sidebar/app-sidebar.tsx",
         },
         {
-          title: "Data Fetching",
-          url: "#",
-          isActive: true,
-        },
-        {
-          title: "Rendering",
-          url: "#",
-        },
-        {
-          title: "Caching",
-          url: "#",
-        },
-        {
-          title: "Styling",
-          url: "#",
-        },
-        {
-          title: "Optimizing",
-          url: "#",
-        },
-        {
-          title: "Configuring",
-          url: "#",
-        },
-        {
-          title: "Testing",
-          url: "#",
-        },
-        {
-          title: "Authentication",
-          url: "#",
-        },
-        {
-          title: "Deploying",
-          url: "#",
-        },
-        {
-          title: "Upgrading",
-          url: "#",
-        },
-        {
-          title: "Examples",
-          url: "#",
+          type: "file",
+          name: "search-form.tsx",
+          path: "components/sidebar/search-form.tsx",
         },
       ],
     },
     {
-      title: "API Reference",
-      url: "#",
-      items: [
+      type: "folder",
+      name: "ui",
+      path: "components/ui",
+      isExpanded: false,
+      children: [
         {
-          title: "Components",
-          url: "#",
+          type: "file",
+          name: ".gitkeep",
+          path: "components/ui/.gitkeep",
         },
         {
-          title: "File Conventions",
-          url: "#",
+          type: "file",
+          name: "app-header.tsx",
+          path: "components/ui/app-header.tsx",
         },
         {
-          title: "Functions",
-          url: "#",
+          type: "file",
+          name: "base-node.tsx",
+          path: "components/ui/base-node.tsx",
         },
         {
-          title: "next.config.js Options",
-          url: "#",
-        },
-        {
-          title: "CLI",
-          url: "#",
-        },
-        {
-          title: "Edge Runtime",
-          url: "#",
+          type: "file",
+          name: "theme-provider.tsx",
+          path: "components/ui/theme-provider.tsx",
         },
       ],
     },
     {
-      title: "Architecture",
-      url: "#",
-      items: [
-        {
-          title: "Accessibility",
-          url: "#",
-        },
-        {
-          title: "Fast Refresh",
-          url: "#",
-        },
-        {
-          title: "Next.js Compiler",
-          url: "#",
-        },
-        {
-          title: "Supported Browsers",
-          url: "#",
-        },
-        {
-          title: "Turbopack",
-          url: "#",
-        },
-      ],
+      type: "file",
+      name: "index.html",
+      path: "components/index.html",
+    },
+    {
+      type: "file",
+      name: "styles.css",
+      path: "components/styles.css",
+    },
+    {
+      type: "file",
+      name: "script.js",
+      path: "components/script.js",
     },
   ],
+}
+
+/**
+ * Recursive component to render file tree items
+ * - Files: Renders as SidebarMenuItem with SidebarMenuButton
+ * - Folders: Renders as Collapsible with nested TreeNode calls for children
+ */
+function TreeNode({
+  item,
+  depth = 0,
+  currentHash,
+  onHashChange,
+}: {
+  item: TreeItem
+  depth?: number
+  currentHash: string
+  onHashChange: (hash: string) => void
+}) {
+  const [isOpen, setIsOpen] = useState(
+    item.type === "folder" ? item.isExpanded : false
+  )
+
+  // Render file as a simple menu item
+  if (item.type === "file") {
+    const isActive = currentHash === item.path
+
+    return (
+      <SidebarMenuItem>
+        <SidebarMenuButton tooltip={item.name} isActive={isActive}>
+          <HugeiconsIcon icon={File02Icon} strokeWidth={2} />
+          <Link
+            href={`#${item.path}`}
+            className="flex-1"
+            onClick={() => onHashChange(item.path)}
+          >
+            {item.name}
+          </Link>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    )
+  }
+
+  // Render folder as a collapsible with recursive children
+  return (
+    <Collapsible
+      open={isOpen}
+      onOpenChange={setIsOpen}
+      className="group/collapsible"
+    >
+      <SidebarMenuItem>
+        <SidebarMenuButton tooltip={item.name} render={<CollapsibleTrigger />}>
+          <HugeiconsIcon
+            icon={isOpen ? Folder02Icon : Folder01Icon}
+            strokeWidth={2}
+          />
+          {item.name}
+          <HugeiconsIcon
+            icon={ChevronDown}
+            className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180"
+          />
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+      <CollapsibleContent>
+        <SidebarMenu className="pl-4">
+          {item.children.map((child) => (
+            <TreeNode
+              key={child.path}
+              item={child}
+              depth={depth + 1}
+              currentHash={currentHash}
+              onHashChange={onHashChange}
+            />
+          ))}
+        </SidebarMenu>
+      </CollapsibleContent>
+    </Collapsible>
+  )
 }
 
 export function AppSidebar({
@@ -168,6 +303,25 @@ export function AppSidebar({
   ...props
 }: ComponentProps<typeof Sidebar> & { slug: string }) {
   const project = getProject(slug)
+  const [currentHash, setCurrentHash] = useState("")
+
+  // Track hash changes for active state
+  useEffect(() => {
+    const updateHash = () => {
+      setCurrentHash(window.location.hash.slice(1)) // Remove the # prefix
+    }
+
+    // Set initial hash
+    updateHash()
+
+    // Listen for hash changes (for browser back/forward)
+    window.addEventListener("hashchange", updateHash)
+    return () => window.removeEventListener("hashchange", updateHash)
+  }, [])
+
+  const handleHashChange = (hash: string) => {
+    setCurrentHash(hash)
+  }
 
   return (
     <Sidebar {...props}>
@@ -187,26 +341,21 @@ export function AppSidebar({
         <SearchForm />
       </SidebarHeader>
       <SidebarContent>
-        {/* We create a SidebarGroup for each parent. */}
-        {data.navMain.map((item) => (
-          <SidebarGroup key={item.title}>
-            <SidebarGroupLabel>{item.title}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {item.items.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      isActive={item.isActive}
-                      render={<Link href={item.url} />}
-                    >
-                      {item.title}
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+        <SidebarGroup>
+          <SidebarGroupLabel>{fileTree.name}</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {fileTree.children.map((child) => (
+                <TreeNode
+                  key={child.path}
+                  item={child}
+                  currentHash={currentHash}
+                  onHashChange={handleHashChange}
+                />
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
       <SidebarRail />
     </Sidebar>
