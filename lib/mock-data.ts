@@ -2,13 +2,12 @@
 type NodeData = {
   filename: string
   path: string
-  exports: string[]
   deps: string[] // node_modules this file uses
+  exports: string[]
 }
 
 type FlowNode = {
   id: string // use the full file path as ID
-  position: { x: number; y: number } // you position these manually or with a layout algo
   type: string
   data: NodeData
 }
@@ -24,101 +23,92 @@ export type { NodeData, FlowNode, FlowEdge }
 export const mockNodes: FlowNode[] = [
   {
     id: "src/app/page.tsx",
-    position: { x: 250, y: 50 },
     type: "fileNode",
     data: {
       filename: "page.tsx",
       path: "src/app/page.tsx",
-      exports: ["default"],
       deps: [],
+      exports: ["default"],
     },
   },
   {
     id: "src/app/layout.tsx",
-    position: { x: 50, y: 50 },
     type: "fileNode",
     data: {
       filename: "layout.tsx",
       path: "src/app/layout.tsx",
-      exports: ["default"],
       deps: ["next/font"],
+      exports: ["default"],
     },
   },
   {
     id: "src/utils/auth.ts",
-    position: { x: 150, y: 200 },
     type: "fileNode",
     data: {
       filename: "auth.ts",
       path: "src/utils/auth.ts",
-      exports: ["verifyToken", "generateJWT"],
       deps: ["jsonwebtoken", "bcrypt"],
+      exports: ["verifyToken", "generateJWT"],
     },
   },
   {
     id: "src/utils/api.ts",
-    position: { x: 350, y: 200 },
     type: "fileNode",
     data: {
       filename: "api.ts",
       path: "src/utils/api.ts",
-      exports: ["fetcher", "postJSON", "handleError"],
       deps: ["axios"],
+      exports: ["fetcher", "postJSON", "handleError"],
     },
   },
   {
     id: "src/hooks/useAuth.ts",
-    position: { x: 50, y: 350 },
     type: "fileNode",
     data: {
       filename: "useAuth.ts",
       path: "src/hooks/useAuth.ts",
-      exports: ["useAuth"],
       deps: ["zustand"],
+      exports: ["useAuth"],
     },
   },
   {
     id: "src/hooks/useForm.ts",
-    position: { x: 250, y: 350 },
     type: "fileNode",
     data: {
       filename: "useForm.ts",
       path: "src/hooks/useForm.ts",
-      exports: ["useForm", "useField"],
       deps: [],
+      exports: ["useForm", "useField"],
     },
   },
   {
     id: "src/components/Button.tsx",
-    position: { x: 50, y: 500 },
     type: "fileNode",
     data: {
       filename: "Button.tsx",
       path: "src/components/Button.tsx",
-      exports: ["Button"],
       deps: [],
+      exports: ["Button"],
     },
   },
   {
     id: "src/components/Modal.tsx",
-    position: { x: 250, y: 500 },
     type: "fileNode",
     data: {
       filename: "Modal.tsx",
       path: "src/components/Modal.tsx",
-      exports: ["Modal"],
       deps: ["@radix-ui/react-dialog"],
+      exports: ["Modal"],
     },
   },
   {
     id: "src/types/index.ts",
-    position: { x: 450, y: 350 },
     type: "fileNode",
     data: {
       filename: "index.ts",
       path: "src/types/index.ts",
-      exports: ["User", "AuthToken", "ApiResponse", "FormState"],
       deps: [],
+      exports: ["User", "AuthToken", "ApiResponse", "FormState"],
     },
   },
 ]

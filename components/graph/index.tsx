@@ -9,7 +9,6 @@ import {
   Background,
   BackgroundVariant,
   Controls,
-  ControlButton,
   MiniMap,
 } from "@xyflow/react"
 import "@xyflow/react/dist/style.css"
@@ -18,8 +17,6 @@ import { getLayoutedElements } from "@/lib/layout"
 import { mockEdges, mockNodes } from "@/lib/mock-data"
 
 import { FileNode } from "@/components/graph/file-node"
-import { HugeiconsIcon } from "@hugeicons/react"
-import { MagicWand01Icon } from "@hugeicons/core-free-icons"
 
 const nodeTypes = {
   fileNode: FileNode,
@@ -63,7 +60,7 @@ function GraphContent({
   )
 
   return (
-    <div style={{ width: "100vw", height: "100vh" }}>
+    <div className="h-[calc(100vh-50px)] w-[100vw-18rem] md:w-[100vw-16rem]">
       <ReactFlow
         defaultEdgeOptions={{ type: "straight", animated: true }} // note to team try out smoothstep and default
         nodeTypes={nodeTypes}
@@ -77,6 +74,7 @@ function GraphContent({
       >
         <Background variant={BackgroundVariant.Dots} />
 
+        <Controls />
         <MiniMap nodeStrokeWidth={3} />
       </ReactFlow>
     </div>
