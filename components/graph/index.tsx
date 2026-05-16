@@ -60,23 +60,21 @@ function GraphContent({
   )
 
   return (
-    <div className="h-[calc(100vh-50px)] w-[100vw-18rem] md:w-[100vw-16rem]">
-      <ReactFlow
-        defaultEdgeOptions={{ type: "straight", animated: true }} // note to team try out smoothstep and default
-        nodeTypes={nodeTypes}
-        colorMode={colorMode}
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        fitView
-      >
-        <Background variant={BackgroundVariant.Dots} />
+    <ReactFlow
+      defaultEdgeOptions={{ type: "straight", animated: true }} // note to team try out smoothstep and default
+      nodeTypes={nodeTypes}
+      colorMode={colorMode}
+      nodes={nodes}
+      edges={edges}
+      onNodesChange={onNodesChange}
+      onEdgesChange={onEdgesChange}
+      onConnect={onConnect}
+      fitView
+    >
+      <Background variant={BackgroundVariant.Dots} />
 
-        <Controls />
-        <MiniMap nodeStrokeWidth={3} />
-      </ReactFlow>
-    </div>
+      <Controls />
+      <MiniMap nodeStrokeWidth={3} />
+    </ReactFlow>
   )
 }

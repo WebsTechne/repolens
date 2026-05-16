@@ -13,9 +13,11 @@ export default async function ProjectPage({
     <SidebarProvider>
       <AppSidebar slug={slug} />
       <SidebarInset>
-        <AppHeader slug={slug} />
-        <main className="h-[calc(100dvh-50px)] w-full overflow-clip">
-          <Graph />
+        <main className="relative h-dvh w-full overflow-clip">
+          <AppHeader slug={slug} />
+          <div className="h-dvh w-[100vw-18rem] md:w-[100vw-16rem]">
+            <Graph />
+          </div>
         </main>
       </SidebarInset>
     </SidebarProvider>
