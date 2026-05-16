@@ -9,6 +9,8 @@ import { mockNodes, type NodeData } from "@/lib/mock-data"
 import { useEffect, useState } from "react"
 import { ScrollArea } from "./ui/scroll-area"
 import Image from "next/image"
+import { Switch } from "./ui/switch"
+import { Skeleton } from "./ui/skeleton"
 
 export function DetailsPanel() {
   const { detailsOpen, toggleDetails } = useDetails()
@@ -16,6 +18,11 @@ export function DetailsPanel() {
   const [nodeData, setNodeData] = useState<NodeData | null>(null)
 
   const [aiMode, setAiMode] = useState(false)
+
+  const exit = () => {
+    toggleDetails()
+    setAiMode(false)
+  }
 
   // Track hash changes
   useEffect(() => {
@@ -59,7 +66,7 @@ export function DetailsPanel() {
       <ScrollArea className="h-full [&_.section]:mb-4 [&_.section]:px-4">
         <div className="section flex-between gap-0.5">
           <h2 className="text-xl font-semibold">Details</h2>
-          <Button size="icon-lg" variant="ghost" onClick={toggleDetails}>
+          <Button size="icon-lg" variant="ghost" onClick={exit}>
             <HugeiconsIcon icon={Cancel01Icon} />
           </Button>
         </div>
@@ -79,19 +86,23 @@ export function DetailsPanel() {
                 </h3>
                 <p className="font-mono text-sm break-all">{nodeData.path}</p>
               </div>
-              {nodeData.deps.length > 0 && (
+              {nodeData.imports.length > 0 && (
                 <div>
                   <h3 className="mb-2 text-sm font-medium text-muted-foreground">
-                    Dependencies ({nodeData.deps.length})
+                    Imports ({nodeData.imports.length})
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {nodeData.deps.map((dep) => (
+                    {nodeData.imports.map((imp) => (
                       <span
-                        key={dep}
-                        className="rounded-md bg-blue-100 px-2 py-1 font-mono text-xs text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
-                        // bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400
+                        key={imp.name}
+                        className={cn(
+                          "rounded-md px-2 py-1 font-mono text-xs",
+                          imp.kind === "external"
+                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
+                            : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+                        )}
                       >
-                        {dep}
+                        {imp.name}
                       </span>
                     ))}
                   </div>
@@ -117,35 +128,57 @@ export function DetailsPanel() {
             </div>
           ) : (
             <div className="flex h-[calc(100%-4rem)] items-center justify-center">
-              <p className="text-sm text-muted-foreground">
-                Select a file to view details
+              <p className="rounded-md border p-2 text-sm text-muted-foreground">
+                There was an error loading this file. Please try again.
               </p>
             </div>
           )}
         </div>
 
-        <div
-          className={cn(
-            "mx-2 overflow-clip rounded-lg border bg-background p-3 duration-230",
-            aiMode ? "h-60" : "h-18"
-          )}
-        >
+        {nodeData && (
           <div
-            className="flex-between cursor-pointer"
-            onClick={() => setAiMode(!aiMode)}
+            className={cn(
+              "mx-2 overflow-clip rounded-lg border bg-background p-3 duration-230",
+              aiMode ? "h-60" : "h-18"
+            )}
           >
-            <span className="flex-center size-12 rounded-full">
-              <span className="relative inline-block size-10 overflow-clip rounded-full">
-                <Image
-                  src="/ibm-bob-300x258.png"
-                  alt="IBM Bob logo"
-                  fill={true}
-                  className="object-cover select-none"
-                />
-              </span>
-            </span>
+            <div
+              className="mb-1 flex-between cursor-pointer"
+              onClick={() => setAiMode(!aiMode)}
+            >
+              <div className="flex-between gap-2">
+                <span className="flex-center size-12 rounded-full">
+                  <span className="relative inline-block size-10 overflow-clip rounded-full">
+                    <Image
+                      src="/ibm-bob-300x258.png"
+                      alt="IBM Bob logo"
+                      fill={true}
+                      className="object-cover select-none"
+                    />
+                  </span>
+                </span>
+                <span
+                  className={cn(
+                    "font-semibold",
+                    aiMode ? "text-sidebar-primary" : "text-muted-foreground"
+                  )}
+                >
+                  AI Summary
+                </span>
+              </div>
+
+              <Switch checked={aiMode} onCheckedChange={setAiMode} />
+            </div>
+
+            <div className="flex flex-col gap-1.5 py-2">
+              <Skeleton className="h-4 w-9/10 rounded-sm" />
+              <Skeleton className="h-4 w-7/10 rounded-sm" />
+              <Skeleton className="h-4 w-5/10 rounded-sm" /> <br />
+              <Skeleton className="h-4 w-8/10 rounded-sm" />
+              <Skeleton className="h-4 w-6/10 rounded-sm" />
+            </div>
           </div>
-        </div>
+        )}
       </ScrollArea>
     </section>
   )

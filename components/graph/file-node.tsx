@@ -1,21 +1,16 @@
 // components/graph/FileNode.tsx
 "use client"
 import { useDetails } from "@/contexts/details-context"
+import { NodeData } from "@/lib/mock-data"
+import { cn } from "@/lib/utils"
 import { Handle, Position } from "@xyflow/react"
 import { useRouter } from "next/navigation"
-
-type FileNodeData = {
-  filename: string
-  path: string
-  exports: string[]
-  deps: string[]
-}
 
 export function FileNode({
   data,
   selected,
 }: {
-  data: FileNodeData
+  data: NodeData
   selected: boolean
 }) {
   const router = useRouter()
@@ -38,14 +33,19 @@ export function FileNode({
         {data.path}
       </p>
 
-      {data.deps.length > 0 && (
+      {data.imports.length > 0 && (
         <div className="mb-1 flex flex-wrap gap-1">
-          {data.deps.map((d) => (
+          {data.imports.map((i) => (
             <span
-              key={d}
-              className="rounded bg-blue-100 px-1.5 py-0.5 font-mono text-xs text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+              key={i.name}
+              className={cn(
+                "rounded px-1.5 py-0.5 font-mono text-xs",
+                i.kind === "external"
+                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
+                  : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+              )}
             >
-              {d}
+              {i.name}
             </span>
           ))}
         </div>
@@ -56,7 +56,7 @@ export function FileNode({
           {data.exports.map((e) => (
             <span
               key={e}
-              className="rounded bg-emerald-100 px-1.5 py-0.5 font-mono text-xs text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
+              className="rounded bg-orange-100 px-1.5 py-0.5 font-mono text-xs text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
             >
               {e}
             </span>

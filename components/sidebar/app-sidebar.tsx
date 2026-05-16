@@ -50,6 +50,7 @@ import {
   FieldLabel,
   FieldTitle,
 } from "../ui/field"
+import { useDetails } from "@/contexts/details-context"
 
 // ============================================================================
 // FILE TREE TYPES & DATA STRUCTURE
@@ -90,40 +91,11 @@ type FolderTreeItem = {
 type TreeItem = FileTreeItem | FolderTreeItem
 
 /**
- * FILE TREE DATA STRUCTURE
- *
- * This object represents your project's file/folder hierarchy.
- *
- * Structure:
- * - Root is always a FolderTreeItem
- * - Each folder can contain nested folders and files via the 'children' array
- * - Files are leaf nodes (no children)
- * - Use 'isExpanded' to control folder open/close state in UI
- *
- * Usage Example:
- * ```tsx
- * // Recursive component to render the tree
- * function TreeNode({ item }: { item: TreeItem }) {
- *   if (item.type === "file") {
- *     return <div>📄 {item.name}</div>
- *   }
- *
- *   return (
- *     <div>
- *       <div>📁 {item.name}</div>
- *       {item.isExpanded && (
- *         <div style={{ paddingLeft: 20 }}>
- *           {item.children.map((child) => (
- *             <TreeNode key={child.path} item={child} />
- *           ))}
- *         </div>
- *       )}
- *     </div>
- *   )
- * }
- * ```
+ * Root of the file tree
  */
-const fileTree: FolderTreeItem = {
+type FileTree = FolderTreeItem
+
+const fileTree: FileTree = {
   type: "folder",
   name: "components",
   path: "components",
@@ -249,6 +221,8 @@ function TreeNode({
     item.type === "folder" ? item.isExpanded : false
   )
 
+  const { setDetailsOpen } = useDetails()
+
   // Render file as a simple menu item
   if (item.type === "file") {
     const isActive = currentHash === item.path
@@ -260,7 +234,10 @@ function TreeNode({
           <Link
             href={`#${item.path}`}
             className="flex-1"
-            onClick={() => onHashChange(item.path)}
+            onClick={() => {
+              onHashChange(item.path)
+              setDetailsOpen(true)
+            }}
           >
             {item.name}
           </Link>

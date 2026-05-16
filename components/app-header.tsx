@@ -42,7 +42,7 @@ export function AppHeader({ slug }: { slug: string }) {
       >
         Details
         <HugeiconsIcon
-          icon={open ? PanelRightOpenIcon : PanelRightCloseIcon}
+          icon={detailsOpen ? PanelRightOpenIcon : PanelRightCloseIcon}
           size={20}
           strokeWidth={2}
         />

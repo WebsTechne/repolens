@@ -4,22 +4,12 @@ import { AppHeader } from "@/components/app-header"
 import { DetailsPanel } from "@/components/details-panel"
 import Graph from "@/components/graph"
 import { AppSidebar } from "@/components/sidebar/app-sidebar"
-import { Button } from "@/components/ui/button"
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { DetailsProvider, useDetails } from "@/contexts/details-context"
 import { useState } from "react"
 
 function PageClientContent({ slug }: { slug: string }) {
   const [minimapOn, setMinimapOn] = useState(true)
-  const { detailsOpen, setDetailsOpen } = useDetails()
 
   return (
     <SidebarProvider>
