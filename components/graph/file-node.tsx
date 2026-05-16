@@ -1,5 +1,6 @@
 // components/graph/FileNode.tsx
 "use client"
+import { useDetails } from "@/contexts/details-context"
 import { Handle, Position } from "@xyflow/react"
 import { useRouter } from "next/navigation"
 
@@ -18,11 +19,15 @@ export function FileNode({
   selected: boolean
 }) {
   const router = useRouter()
+  const { setDetailsOpen } = useDetails()
 
   return (
     <div
       className={`w-52 rounded-lg border bg-background px-3 py-2 text-sm shadow-sm ${selected ? "border-blue-500 ring-1 ring-blue-500" : "border-border"} `}
-      onClick={() => router.push(`#${data.path}`)}
+      onClick={() => {
+        router.push(`#${data.path}`)
+        setDetailsOpen(true)
+      }}
     >
       <Handle type="target" position={Position.Top} />
 

@@ -10,16 +10,18 @@ import {
   PanelRightOpenIcon,
 } from "@hugeicons/core-free-icons"
 import { cn } from "@/lib/utils"
+import { useDetails } from "@/contexts/details-context"
 
 export function AppHeader({ slug }: { slug: string }) {
   const { open, toggleSidebar } = useSidebar()
+  const { detailsOpen, setDetailsOpen } = useDetails()
   const project = getProject(slug)
 
   return (
     <header
       className={cn(
-        "absolute top-0 z-1000 flex-between h-16 w-full px-3 py-3",
-        "[&>section]:h-10 [&>section]:rounded-lg [&>section]:border [&>section]:bg-muted"
+        "pointer-events-none absolute top-0 z-1000 flex-between h-16 w-full px-3 py-3",
+        "[&>section]:pointer-events-auto [&>section]:h-10 [&>section]:rounded-lg [&>section]:border [&>section]:bg-muted"
       )}
     >
       <section
@@ -36,7 +38,7 @@ export function AppHeader({ slug }: { slug: string }) {
 
       <section
         className="flex-between cursor-pointer gap-4 px-3 hover:opacity-90"
-        onClick={toggleSidebar}
+        onClick={() => setDetailsOpen(true)}
       >
         Details
         <HugeiconsIcon

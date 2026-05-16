@@ -22,19 +22,21 @@ const nodeTypes = {
   fileNode: FileNode,
 }
 
-export default function Graph() {
+export default function Graph({ minimapOn }: { minimapOn: boolean }) {
   const { resolvedTheme } = useTheme()
 
   if (!resolvedTheme) return null
 
   const colorMode = resolvedTheme as "light" | "dark"
-  return <GraphContent colorMode={colorMode} />
+  return <GraphContent colorMode={colorMode} minimapOn={minimapOn} />
 }
 
 function GraphContent({
   colorMode,
+  minimapOn,
 }: {
   colorMode: "light" | "dark" | "system" | undefined
+  minimapOn: boolean
 }) {
   const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
     mockNodes,
@@ -74,7 +76,7 @@ function GraphContent({
       <Background variant={BackgroundVariant.Dots} />
 
       <Controls />
-      <MiniMap nodeStrokeWidth={3} />
+      {minimapOn && <MiniMap nodeStrokeWidth={3} />}
     </ReactFlow>
   )
 }

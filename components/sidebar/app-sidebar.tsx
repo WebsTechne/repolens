@@ -15,7 +15,6 @@ export const getProject = (slug: string) => {
 
 import { ComponentProps, useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   ChevronDown,
@@ -28,6 +27,7 @@ import { SearchForm } from "./search-form"
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -42,6 +42,14 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "../ui/collapsible"
+import { Switch } from "../ui/switch"
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldLabel,
+  FieldTitle,
+} from "../ui/field"
 
 // ============================================================================
 // FILE TREE TYPES & DATA STRUCTURE
@@ -300,8 +308,14 @@ function TreeNode({
 
 export function AppSidebar({
   slug,
+  minimapOn,
+  setMinimapOn,
   ...props
-}: ComponentProps<typeof Sidebar> & { slug: string }) {
+}: ComponentProps<typeof Sidebar> & {
+  slug: string
+  minimapOn: boolean
+  setMinimapOn: (val: boolean) => void
+}) {
   const project = getProject(slug)
   const [currentHash, setCurrentHash] = useState("")
 
@@ -340,6 +354,7 @@ export function AppSidebar({
         </div>
         <SearchForm />
       </SidebarHeader>
+
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>{fileTree.name}</SidebarGroupLabel>
@@ -357,6 +372,24 @@ export function AppSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
+      <SidebarFooter>
+        <FieldLabel htmlFor="switch-minimap" className="cursor-pointer">
+          <Field orientation="horizontal">
+            <FieldContent>
+              <FieldTitle>Enable minimap</FieldTitle>
+              <FieldDescription>
+                A tiny view of your node tree.
+              </FieldDescription>
+            </FieldContent>
+            <Switch
+              id="switch-minimap"
+              checked={minimapOn}
+              onCheckedChange={setMinimapOn}
+            />
+          </Field>
+        </FieldLabel>
+      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   )
