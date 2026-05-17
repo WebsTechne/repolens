@@ -47,6 +47,25 @@ export interface WorkerResponse {
   error?: string
 }
 
+// File tree types
+export type FileTreeItem = {
+  type: "file"
+  name: string
+  path: string
+}
+
+export type FolderTreeItem = {
+  type: "folder"
+  name: string
+  path: string
+  isExpanded: boolean
+  children: TreeItem[]
+}
+
+export type TreeItem = FileTreeItem | FolderTreeItem
+
+export type FileTree = FolderTreeItem
+
 // Server response types
 export interface UploadSuccessResponse {
   success: true
@@ -55,6 +74,7 @@ export interface UploadSuccessResponse {
   fileSize: string
   filesExtracted: number
   flowData: ParseResult
+  fileTree: FileTree
 }
 
 export interface UploadErrorResponse {
@@ -71,9 +91,5 @@ export interface ProgressMessage {
   message: string
   progress?: number
 }
-
-// export type FileTreeItem = {
-//   typ
-// }
 
 // Made with Bob

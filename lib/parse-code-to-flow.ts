@@ -338,35 +338,46 @@ function resolveImportPath(
   if (!isRelative) {
     // Try to resolve path alias (e.g., @/components)
     let matched = false
+
     for (const [alias, paths] of Object.entries(pathMappings)) {
-      const aliasPattern = alias.replace("/*", "")
-      if (importPath.startsWith(aliasPattern)) {
-        // Extract the part after the alias (e.g., "components/ui/button" from "@/components/ui/button")
-        let relativeSuffix = importPath.substring(aliasPattern.length)
-        // Remove leading slash if present
-        if (relativeSuffix.startsWith("/")) {
-          relativeSuffix = relativeSuffix.substring(1)
+      // Handle wildcard aliases (e.g., "@/*")
+      if (alias.endsWith("/*")) {
+        const aliasPattern = alias.slice(0, -1) // Keep the slash! "@/*" becomes "@/"
+
+        if (importPath.startsWith(aliasPattern)) {
+          // Extract everything after the "@/" (e.g., "components/Button")
+          const relativeSuffix = importPath.substring(aliasPattern.length)
+
+          for (const mappedPath of paths) {
+            // Replace the target wildcard token with the suffix string
+            const resolvedMapping = mappedPath.replace("*", relativeSuffix)
+            const baseDir = baseUrl.replace(/^\.\/?/, "")
+
+            targetPath = path.join(baseDir, resolvedMapping)
+            matched = true
+            break
+          }
         }
+      }
+      // Handle exact keyword aliases (e.g., "components" -> "src/components")
+      else if (importPath === alias || importPath.startsWith(`${alias}/`)) {
+        const relativeSuffix = importPath.substring(alias.length) // e.g. "/Button" or ""
 
         for (const mappedPath of paths) {
-          const resolvedMapping = mappedPath
-            .replace("/*", "")
-            .replace("*", relativeSuffix)
-
           const baseDir = baseUrl.replace(/^\.\/?/, "")
-          targetPath = path.join(baseDir, resolvedMapping)
+          targetPath = path.join(baseDir, mappedPath, relativeSuffix)
           matched = true
-
-          console.log(
-            `[Parser] Resolved alias: "${importPath}" -> "${targetPath}"`
-          )
           break
         }
       }
-      if (matched) break
+
+      if (matched) {
+        console.log(`[Parser] Resolved alias: "${importPath}" -> "${targetPath}"`)
+        break
+      }
     }
 
-    // External module (node_modules)
+    // External module (node_modules) - safe from scope collisions now
     if (!matched) {
       console.log(`[Parser] External module detected: "${importPath}"`)
       return null

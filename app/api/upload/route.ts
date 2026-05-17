@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { Worker } from "worker_threads"
 import { unzipGitHubCodeFiles } from "@/lib/ziputil"
+import { buildFileTree } from "@/lib/build-file-tree"
 import path from "path"
 import type {
   ParseResult,
@@ -162,6 +163,14 @@ export async function POST(
       )
     }
 
+    // Build file tree
+    const fileTree = buildFileTree(codeFiles)
+    console.log(
+      "[Server] Built file tree with",
+      fileTree.children.length,
+      "items"
+    )
+
     // Return success response
     console.log("[Server] Upload and parsing completed successfully")
     return NextResponse.json({
@@ -174,6 +183,7 @@ export async function POST(
         nodes: flowData.nodes,
         edges: flowData.edges,
       },
+      fileTree,
     })
   } catch (error) {
     const errorMessage =

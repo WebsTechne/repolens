@@ -57,10 +57,11 @@ const Page = () => {
       const data = await response.json()
 
       if (response.ok && data.success) {
-        // Log full node data to console for inspection
+        // Log full data to console for inspection
         console.log("=== FLOW DATA RECEIVED FROM SERVER ===")
         console.log("Nodes:", data.flowData.nodes)
         console.log("Edges:", data.flowData.edges)
+        console.log("File Tree:", data.fileTree)
         console.log("======================================")
 
         // Save to store and IndexedDB
