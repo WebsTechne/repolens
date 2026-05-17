@@ -2,73 +2,81 @@ import { NextRequest, NextResponse } from "next/server"
 import { Worker } from "worker_threads"
 import { unzipGitHubCodeFiles } from "@/lib/ziputil"
 import path from "path"
-import type { FlowNode, FlowEdge } from "@/app/types/types"
-
-interface ParseResult {
-  nodes: FlowNode[]
-  edges: FlowEdge[]
-}
-
-interface WorkerResponse {
-  success: boolean
-  data?: ParseResult
-  error?: string
-}
+import type {
+  ParseResult,
+  WorkerResponse,
+  UploadResponse,
+  CodeFiles,
+} from "@/app/types/types"
 
 /**
- * Run ts-morph parsing in a worker thread to avoid blocking
+ * Runs ts-morph parsing in a worker thread to avoid blocking the main server
+ * Uses tsx to execute TypeScript directly in the worker
  */
-
-export function parseInWorker(
-  codeFiles: Record<string, string>,
+function parseInWorker(
+  codeFiles: CodeFiles,
   tsconfigContent?: string
 ): Promise<ParseResult> {
   return new Promise((resolve, reject) => {
-    // Resolve the path to the compiled JavaScript worker file
-    // 1. Target your raw TypeScript worker file directly
     const workerPath = path.join(process.cwd(), "lib", "parse-worker.ts")
 
-    // 2. Spawn the worker, telling Node to use 'tsx' to execute the TypeScript
     const worker = new Worker(workerPath, {
-      execArgv: ["--import", "tsx"], // 👈 This interprets your .ts file instantly on the backend
+      execArgv: ["--import", "tsx"],
     })
 
-    // Node.js Event Listeners (Use .on instead of .onmessage)
     worker.on("message", (response: WorkerResponse) => {
       if (response.success && response.data) {
         resolve(response.data)
       } else {
-        reject(new Error(response.error || "Worker failed"))
+        const error = new Error(
+          response.error || "Worker failed without error message"
+        )
+        console.error("[Server] Worker error:", error.message)
+        reject(error)
       }
       worker.terminate()
     })
 
     worker.on("error", (error) => {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown worker error"
+      console.error("[Server] Worker thread error:", errorMessage)
       reject(error)
       worker.terminate()
     })
 
     worker.on("exit", (code) => {
       if (code !== 0) {
-        reject(new Error(`Worker stopped with exit code ${code}`))
+        const error = new Error(`Worker stopped with exit code ${code}`)
+        console.error("[Server] Worker exit error:", error.message)
+        reject(error)
       }
     })
 
-    // Send data to Node worker thread
     worker.postMessage({ codeFiles, tsconfigContent })
   })
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(
+  request: NextRequest
+): Promise<NextResponse<UploadResponse>> {
   try {
     const formData = await request.formData()
     const file = formData.get("file") as File | null
 
     if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 })
+      console.error("[Server] No file provided in request")
+      return NextResponse.json(
+        {
+          success: false,
+          error: "No file provided",
+          details: "Please upload a ZIP file",
+        },
+        { status: 400 }
+      )
     }
 
-    // Validate file type
+    // Validate ZIP file type
     const validZipTypes = [
       "application/zip",
       "application/x-zip-compressed",
@@ -76,42 +84,53 @@ export async function POST(request: NextRequest) {
     ]
 
     if (!validZipTypes.includes(file.type) && !file.name.endsWith(".zip")) {
-      return NextResponse.json(
-        { error: "Invalid file type. Only ZIP files are allowed" },
-        { status: 400 }
+      console.error(
+        `[Server] Invalid file type: ${file.type}, name: ${file.name}`
       )
-    }
-
-    // Get file size
-    const fileSizeMB = (file.size / 1024 / 1024).toFixed(2)
-    console.log(`[Server] Received ZIP file: ${file.name} (${fileSizeMB} MB)`)
-
-    // Step 1: Extract code files from ZIP (server-side)
-    let codeFiles: Record<string, string>
-    let fileCount = 0
-
-    try {
-      const arrayBuffer = await file.arrayBuffer()
-      codeFiles = await unzipGitHubCodeFiles(arrayBuffer)
-      fileCount = Object.keys(codeFiles).length
-
-      console.log(`[Server] Extracted ${fileCount} code files from ZIP`)
-    } catch (zipError) {
-      console.error("[Server] ZIP extraction error:", zipError)
       return NextResponse.json(
         {
-          error: "Failed to extract ZIP file",
-          details:
-            zipError instanceof Error ? zipError.message : "Unknown error",
+          success: false,
+          error: "Invalid file type",
+          details: "Only ZIP files are allowed",
         },
         { status: 400 }
       )
     }
 
-    // Validate that we found code files
-    if (fileCount === 0) {
+    const fileSizeMB = (file.size / 1024 / 1024).toFixed(2)
+    console.log(`[Server] Received ZIP file: ${file.name} (${fileSizeMB} MB)`)
+
+    // Extract code files from ZIP
+    let codeFiles: CodeFiles
+    let fileCount = 0
+
+    try {
+      console.log("[Server] Extracting files from ZIP...")
+      const arrayBuffer = await file.arrayBuffer()
+      codeFiles = await unzipGitHubCodeFiles(arrayBuffer)
+      fileCount = Object.keys(codeFiles).length
+
+      console.log(`[Server] Successfully extracted ${fileCount} code files`)
+    } catch (zipError) {
+      const errorMessage =
+        zipError instanceof Error ? zipError.message : "Unknown ZIP error"
+      console.error("[Server] ZIP extraction failed:", errorMessage)
+
       return NextResponse.json(
         {
+          success: false,
+          error: "Failed to extract ZIP file",
+          details: errorMessage,
+        },
+        { status: 400 }
+      )
+    }
+
+    if (fileCount === 0) {
+      console.error("[Server] No code files found in ZIP")
+      return NextResponse.json(
+        {
+          success: false,
           error: "No code files found in ZIP",
           details: "ZIP must contain .js, .jsx, .ts, or .tsx files",
         },
@@ -119,28 +138,32 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Step 2: Parse code files with ts-morph in worker thread (server-side)
+    // Parse code files with ts-morph in worker thread
     let flowData: ParseResult
 
     try {
-      console.log(`[Server] Starting ts-morph parsing in worker thread...`)
+      console.log("[Server] Starting code parsing in worker thread...")
       flowData = await parseInWorker(codeFiles)
       console.log(
         `[Server] Parsing complete: ${flowData.nodes.length} nodes, ${flowData.edges.length} edges`
       )
     } catch (parseError) {
-      console.error("[Server] Parsing error:", parseError)
+      const errorMessage =
+        parseError instanceof Error ? parseError.message : "Unknown parse error"
+      console.error("[Server] Code parsing failed:", errorMessage)
+
       return NextResponse.json(
         {
+          success: false,
           error: "Failed to parse code files",
-          details:
-            parseError instanceof Error ? parseError.message : "Unknown error",
+          details: errorMessage,
         },
         { status: 500 }
       )
     }
 
-    // Return processed data to client
+    // Return success response
+    console.log("[Server] Upload and parsing completed successfully")
     return NextResponse.json({
       success: true,
       message: "File processed successfully",
@@ -153,11 +176,15 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error("[Server] Upload error:", error)
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown server error"
+    console.error("[Server] Unexpected upload error:", errorMessage)
+
     return NextResponse.json(
       {
+        success: false,
         error: "Failed to process upload",
-        details: error instanceof Error ? error.message : "Unknown error",
+        details: errorMessage,
       },
       { status: 500 }
     )

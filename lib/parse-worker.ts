@@ -1,38 +1,43 @@
 import { parentPort } from "worker_threads"
 import { parseCodeToFlow } from "./parse-code-to-flow.ts"
+import type { WorkerMessage, WorkerResponse } from "@/app/types/types"
 
-// 1. Defend the runtime context
+/**
+ * Worker thread for parsing code files with ts-morph
+ * Runs in a separate thread to avoid blocking the main Next.js server
+ */
+
 if (!parentPort) {
-  throw new Error(
-    "This script must be executed inside a Node.js worker_threads pool."
-  )
+  throw new Error("Must be executed in a worker_threads context")
 }
 
-interface WorkerMessage {
-  codeFiles: Record<string, string>
-  tsconfigContent?: string
-}
-
-// Listen for messages from the main thread
 parentPort.on("message", (message: WorkerMessage) => {
-  // 2. Safe to remove optional chain '?' here now
   if (!parentPort) {
-    throw new Error(
-      "This script must be executed inside a Node.js worker_threads pool."
-    )
+    throw new Error("Must be executed in a worker_threads context")
   }
 
   try {
+    console.log("[Worker] Starting code parsing...")
     const { codeFiles, tsconfigContent } = message
-
     const result = parseCodeToFlow(codeFiles, tsconfigContent)
 
-    parentPort.postMessage({ success: true, data: result }) // Safe to remove optional chain
+    console.log(
+      `[Worker] Parsing complete: ${result.nodes.length} nodes, ${result.edges.length} edges`
+    )
+
+    const response: WorkerResponse = { success: true, data: result }
+    parentPort.postMessage(response)
   } catch (error) {
-    parentPort.postMessage({
-      // Safe to remove optional chain
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown parsing error"
+    console.error("[Worker] Parsing failed:", errorMessage)
+
+    const response: WorkerResponse = {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    })
+      error: errorMessage,
+    }
+    parentPort.postMessage(response)
   }
 })
+
+// Made with Bob

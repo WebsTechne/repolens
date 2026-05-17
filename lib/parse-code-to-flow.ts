@@ -1,58 +1,78 @@
-import path from "path" // Native Node module works perfectly on server-side workers
-import { Project, SourceFile } from "ts-morph"
-import type { FlowNode, FlowEdge, NodeData, Import } from "@/app/types/types"
-
-interface CodeFiles {
-  [path: string]: string
-}
-
-interface ParseResult {
-  nodes: FlowNode[]
-  edges: FlowEdge[]
-}
+import path from "path"
+import { Project, SourceFile, SyntaxKind } from "ts-morph"
+import type { CompilerOptions } from "ts-morph"
+import type {
+  FlowNode,
+  FlowEdge,
+  NodeData,
+  Import,
+  CodeFiles,
+  ParseResult,
+} from "@/app/types/types"
 
 /**
  * Parses code files using ts-morph and generates React Flow nodes and edges
  * @param codeFiles - Object mapping file paths to their content
  * @param tsconfigContent - Optional tsconfig.json content for path resolution
- * @returns React Flow nodes and edges
+ * @returns React Flow nodes and edges representing the code structure
  */
 export function parseCodeToFlow(
   codeFiles: CodeFiles,
   tsconfigContent?: string
 ): ParseResult {
-  // Create an In-Memory ts-morph project
-  const project = new Project({
-    useInMemoryFileSystem: true,
-    compilerOptions: {
-      target: 99, // ESNext
-      module: 99, // ESNext
-      moduleResolution: 2, // Node
-      esModuleInterop: true,
-      allowJs: true,
-      jsx: 4, // React JSX
-    },
-  })
+  let compilerOptions: CompilerOptions = {
+    target: 99, // ESNext
+    module: 99, // ESNext
+    moduleResolution: 2, // Node
+    esModuleInterop: true,
+    allowJs: true,
+    jsx: 4, // React JSX
+  }
 
-  // Parse tsconfig if provided to extract path mappings
   let pathMappings: Record<string, string[]> = {}
   let baseUrl = "."
 
+  // Parse tsconfig and use its compiler options
   if (tsconfigContent) {
     try {
       const tsconfig = JSON.parse(tsconfigContent)
-      if (tsconfig.compilerOptions?.paths) {
-        pathMappings = tsconfig.compilerOptions.paths
-      }
-      if (tsconfig.compilerOptions?.baseUrl) {
-        baseUrl = tsconfig.compilerOptions.baseUrl
+
+      if (tsconfig.compilerOptions) {
+        // Use tsconfig compiler options
+        compilerOptions = {
+          ...compilerOptions,
+          ...tsconfig.compilerOptions,
+        }
+        console.log(
+          "[Parser] Using tsconfig.json compiler options for ts-morph project"
+        )
+
+        if (tsconfig.compilerOptions.paths) {
+          pathMappings = tsconfig.compilerOptions.paths
+        }
+        if (tsconfig.compilerOptions.baseUrl) {
+          baseUrl = tsconfig.compilerOptions.baseUrl
+        }
       }
     } catch (error) {
-      console.warn("Failed to parse tsconfig:", error)
+      console.warn(
+        "[Parser] Failed to parse tsconfig.json, falling back to default compiler options:",
+        error instanceof Error ? error.message : "Unknown error"
+      )
     }
+  } else {
+    console.warn(
+      "[Parser] No tsconfig.json provided, using default compiler options"
+    )
   }
 
-  // Add all unzipped memory files to the virtual project space
+  // Create in-memory ts-morph project
+  const project = new Project({
+    useInMemoryFileSystem: true,
+    compilerOptions,
+  })
+
+  // Add all files to the virtual project
   const sourceFiles: Map<string, SourceFile> = new Map()
   for (const [filePath, content] of Object.entries(codeFiles)) {
     const sourceFile = project.createSourceFile(filePath, content, {
@@ -63,35 +83,34 @@ export function parseCodeToFlow(
 
   const nodes: FlowNode[] = []
   const edges: FlowEdge[] = []
-  const edgeSet = new Set<string>() // Track unique edge paths
+  const edgeSet = new Set<string>()
 
-  // Process each source file node
+  // Process each file to create nodes and edges
   for (const [filePath, sourceFile] of sourceFiles) {
     const nodeData = extractNodeData(
       sourceFile,
       filePath,
       pathMappings,
       baseUrl,
-      codeFiles
+      codeFiles,
+      sourceFiles
     )
 
-    // Create the visual React Flow node frame
-    const node: FlowNode = {
+    nodes.push({
       id: filePath,
       type: "custom",
       data: nodeData,
-    }
-    nodes.push(node)
+    })
 
-    // Create connected dependency edges for all discovered local imports
+    // Create edges for local imports
     for (const imp of nodeData.imports) {
       if (imp.kind === "local") {
-        const edgeId = `${filePath}->${imp.name}`
+        const edgeId = `${filePath}->${imp.source}`
         if (!edgeSet.has(edgeId)) {
           edges.push({
             id: edgeId,
             source: filePath,
-            target: imp.name,
+            target: imp.source,
           })
           edgeSet.add(edgeId)
         }
@@ -99,28 +118,37 @@ export function parseCodeToFlow(
     }
   }
 
+  console.log(
+    `[Parser] Successfully parsed ${nodes.length} files with ${edges.length} dependencies`
+  )
+
   return { nodes, edges }
 }
 
 /**
- * Extracts dependency node metadata and module exports from a source file
+ * Extracts imports and exports from a source file
  */
 function extractNodeData(
   sourceFile: SourceFile,
   filePath: string,
   pathMappings: Record<string, string[]>,
   baseUrl: string,
-  allFiles: CodeFiles
+  allFiles: CodeFiles,
+  allSourceFiles: Map<string, SourceFile>
 ): NodeData {
-  const imports: Import[] = []
   const exports: string[] = []
 
-  // 1. Process and resolve file imports
+  // Group imports by source path
+  const importsBySource = new Map<
+    string,
+    { names: string[]; kind: "external" | "local" }
+  >()
+
+  // Extract imports with function names
   const importDeclarations = sourceFile.getImportDeclarations()
   for (const importDecl of importDeclarations) {
     const moduleSpecifier = importDecl.getModuleSpecifierValue()
 
-    // Resolve the internal system path
     const resolvedPath = resolveImportPath(
       moduleSpecifier,
       filePath,
@@ -130,15 +158,59 @@ function extractNodeData(
     )
 
     const kind: "external" | "local" = resolvedPath ? "local" : "external"
+    const source = resolvedPath || moduleSpecifier
 
-    imports.push({
-      name: resolvedPath || moduleSpecifier,
-      kind,
-    })
+    // Get or create the import group for this source
+    if (!importsBySource.has(source)) {
+      importsBySource.set(source, { names: [], kind })
+    }
+    const importGroup = importsBySource.get(source)!
+
+    // Extract imported names (functions, classes, etc.)
+    const namedImports = importDecl.getNamedImports()
+    const defaultImport = importDecl.getDefaultImport()
+    const namespaceImport = importDecl.getNamespaceImport()
+
+    if (namedImports.length > 0) {
+      // Named imports: import { foo, bar } from 'module'
+      for (const namedImport of namedImports) {
+        importGroup.names.push(namedImport.getName())
+      }
+    } else if (defaultImport) {
+      // Default import: import Foo from 'module'
+      const importedName = defaultImport.getText()
+
+      // For local imports, try to get the actual exported name
+      if (kind === "local" && resolvedPath) {
+        const targetSourceFile = allSourceFiles.get(resolvedPath)
+        if (targetSourceFile) {
+          const actualDefaultExport = getDefaultExportName(targetSourceFile)
+          importGroup.names.push(actualDefaultExport || importedName)
+        } else {
+          importGroup.names.push(importedName)
+        }
+      } else {
+        importGroup.names.push(importedName)
+      }
+    } else if (namespaceImport) {
+      // Namespace import: import * as Foo from 'module'
+      importGroup.names.push(namespaceImport.getText())
+    } else {
+      // Side-effect import: import 'module'
+      importGroup.names.push("(side-effect)")
+    }
   }
 
-  // 2. Extract explicitly declared module exports
-  // Named exports (e.g., export { a, b })
+  // Convert grouped imports to Import array
+  const imports: Import[] = Array.from(importsBySource.entries()).map(
+    ([source, { names, kind }]) => ({
+      source,
+      names,
+      kind,
+    })
+  )
+
+  // Extract named exports
   const exportDeclarations = sourceFile.getExportDeclarations()
   for (const exportDecl of exportDeclarations) {
     const namedExports = exportDecl.getNamedExports()
@@ -147,31 +219,33 @@ function extractNodeData(
     }
   }
 
-  // Export assignments (e.g., export default, export =)
+  // Extract default export with actual name
   const exportAssignments = sourceFile.getExportAssignments()
   for (const exportAssignment of exportAssignments) {
     if (exportAssignment.isExportEquals()) {
       exports.push("= (export equals)")
     } else {
-      exports.push("default")
+      // Get the actual default export name
+      const defaultExportName = getDefaultExportName(sourceFile)
+      exports.push(defaultExportName)
     }
   }
 
-  // Explicit inline exported functions
+  // Extract exported functions
   sourceFile.getFunctions().forEach((func) => {
     if (func.isExported()) {
       exports.push(func.getName() || "anonymous")
     }
   })
 
-  // Explicit inline exported classes
+  // Extract exported classes
   sourceFile.getClasses().forEach((cls) => {
     if (cls.isExported()) {
       exports.push(cls.getName() || "anonymous")
     }
   })
 
-  // Explicit inline exported variables
+  // Extract exported variables
   sourceFile.getVariableStatements().forEach((varStatement) => {
     if (varStatement.isExported()) {
       varStatement.getDeclarations().forEach((decl) => {
@@ -180,21 +254,21 @@ function extractNodeData(
     }
   })
 
-  // Explicit inline exported interfaces
+  // Extract exported interfaces
   sourceFile.getInterfaces().forEach((iface) => {
     if (iface.isExported()) {
       exports.push(iface.getName())
     }
   })
 
-  // Explicit inline exported type aliases
+  // Extract exported type aliases
   sourceFile.getTypeAliases().forEach((typeAlias) => {
     if (typeAlias.isExported()) {
       exports.push(typeAlias.getName())
     }
   })
 
-  // Explicit inline exported enums
+  // Extract exported enums
   sourceFile.getEnums().forEach((enumDecl) => {
     if (enumDecl.isExported()) {
       exports.push(enumDecl.getName())
@@ -207,12 +281,49 @@ function extractNodeData(
     filename,
     path: filePath,
     imports,
-    exports: [...new Set(exports)], // Dedup duplicate entries safely
+    exports: [...new Set(exports)],
   }
 }
 
 /**
- * Resolves an abstract import path or path alias down to an actual exact memory file key
+ * Gets the actual name of the default export
+ */
+function getDefaultExportName(sourceFile: SourceFile): string {
+  // Check for export default function/class with name
+  const defaultExportSymbol = sourceFile.getDefaultExportSymbol()
+  if (defaultExportSymbol) {
+    const name = defaultExportSymbol.getName()
+    if (name !== "default") {
+      return name
+    }
+  }
+
+  // Check for export default [identifier]
+  const exportAssignments = sourceFile.getExportAssignments()
+  for (const assignment of exportAssignments) {
+    if (!assignment.isExportEquals()) {
+      const expression = assignment.getExpression()
+      if (expression) {
+        // Try to get identifier name
+        if (expression.getKind() === SyntaxKind.Identifier) {
+          return expression.getText()
+        }
+        // Try to get function/class name
+        const text = expression.getText()
+        const match = text.match(/^(?:function|class)\s+(\w+)/)
+        if (match) {
+          return match[1]
+        }
+      }
+    }
+  }
+
+  return "default"
+}
+
+/**
+ * Resolves import path to actual file path
+ * Handles path aliases (e.g., @/*) and relative imports
  */
 function resolveImportPath(
   importPath: string,
@@ -224,42 +335,52 @@ function resolveImportPath(
   let targetPath = importPath
   const isRelative = importPath.startsWith(".") || importPath.startsWith("/")
 
-  // 1. Resolve path alias mappings (e.g., '@/components/*')
   if (!isRelative) {
+    // Try to resolve path alias (e.g., @/components)
     let matched = false
     for (const [alias, paths] of Object.entries(pathMappings)) {
       const aliasPattern = alias.replace("/*", "")
       if (importPath.startsWith(aliasPattern)) {
-        const relativeSuffix = importPath.substring(aliasPattern.length)
+        // Extract the part after the alias (e.g., "components/ui/button" from "@/components/ui/button")
+        let relativeSuffix = importPath.substring(aliasPattern.length)
+        // Remove leading slash if present
+        if (relativeSuffix.startsWith("/")) {
+          relativeSuffix = relativeSuffix.substring(1)
+        }
 
         for (const mappedPath of paths) {
           const resolvedMapping = mappedPath
             .replace("/*", "")
             .replace("*", relativeSuffix)
 
-          // Clean up standard leading dots from tsconfig base dirs safely
           const baseDir = baseUrl.replace(/^\.\/?/, "")
           targetPath = path.join(baseDir, resolvedMapping)
           matched = true
+
+          console.log(
+            `[Parser] Resolved alias: "${importPath}" -> "${targetPath}"`
+          )
           break
         }
       }
       if (matched) break
     }
 
-    // If it did not match an alias structure and isn't relative, it's a standard node_module
-    if (!matched) return null
+    // External module (node_modules)
+    if (!matched) {
+      console.log(`[Parser] External module detected: "${importPath}"`)
+      return null
+    }
   } else {
-    // 2. Resolve standard relative lookups safely using path.dirname
+    // Resolve relative import
     const currentDir = path.dirname(currentFilePath)
     targetPath = path.join(currentDir, importPath)
   }
 
-  // 3. Normalize structural noise ('..', '.', double slashes) out of the path string
-  // and force forward-slashes to ensure compatibility with your unzipped dictionary format
+  // Normalize path and convert to forward slashes
   const normalizedTarget = path.normalize(targetPath).replace(/\\/g, "/")
 
-  // 4. Check potential file resolution candidates sequentially
+  // Try different file extensions
   const candidates = [
     normalizedTarget,
     `${normalizedTarget}.ts`,
@@ -274,9 +395,15 @@ function resolveImportPath(
 
   for (const candidate of candidates) {
     if (allFiles[candidate]) {
+      console.log(`[Parser] Found file: "${candidate}"`)
       return candidate
     }
   }
 
+  console.log(
+    `[Parser] File not found. Tried: ${candidates.slice(0, 3).join(", ")}...`
+  )
   return null
 }
+
+// Made with Bob
