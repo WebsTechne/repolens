@@ -1,19 +1,8 @@
 "use client"
 
-export const getProject = (slug: string) => {
-  let project: { slug: string; name: string; error?: "" } = {
-    slug: "",
-    name: "",
-  }
-  const raw = localStorage.getItem(slug)
-  if (!raw) return { ...project, error: "Project not found" }
-
-  project = JSON.parse(raw)
-
-  return project
-}
-
 import { ComponentProps, useState, useEffect } from "react"
+import { useFlowStore } from "@/lib/store/flow-store"
+import { useRepoStore } from "@/lib/store/repo-store"
 import Link from "next/link"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -52,154 +41,7 @@ import {
 } from "../ui/field"
 import { useDetails } from "@/contexts/details-context"
 
-// ============================================================================
-// FILE TREE TYPES & DATA STRUCTURE
-// ============================================================================
-
-/**
- * Represents a file in the tree
- * @property type - Discriminator to identify this as a file
- * @property name - Display name of the file (e.g., "index.tsx")
- * @property path - Full path to the file (e.g., "components/graph/index.tsx")
- */
-type FileTreeItem = {
-  type: "file"
-  name: string
-  path: string
-}
-
-/**
- * Represents a folder in the tree
- * @property type - Discriminator to identify this as a folder
- * @property name - Display name of the folder (e.g., "graph")
- * @property path - Full path to the folder (e.g., "components/graph")
- * @property isExpanded - Optional UI state for collapsible folders
- * @property children - Array of nested files and folders
- */
-type FolderTreeItem = {
-  type: "folder"
-  name: string
-  path: string
-  isExpanded?: boolean
-  children: TreeItem[]
-}
-
-/**
- * Union type representing any item in the file tree
- * Use the 'type' property to discriminate between files and folders
- */
-type TreeItem = FileTreeItem | FolderTreeItem
-
-/**
- * Root of the file tree
- */
-type FileTree = FolderTreeItem
-
-const fileTree: FileTree = {
-  type: "folder",
-  name: "components",
-  path: "components",
-  isExpanded: true,
-  children: [
-    {
-      type: "folder",
-      name: "graph",
-      path: "components/graph",
-      isExpanded: true,
-      children: [
-        {
-          type: "file",
-          name: "file-node.tsx",
-          path: "components/graph/file-node.tsx",
-        },
-        {
-          type: "file",
-          name: "index.tsx",
-          path: "components/graph/index.tsx",
-        },
-        {
-          type: "folder",
-          name: "utils",
-          path: "components/graph/utils",
-          isExpanded: false,
-          children: [
-            {
-              type: "file",
-              name: "helpers.ts",
-              path: "components/graph/utils/helpers.ts",
-            },
-            {
-              type: "file",
-              name: "constants.ts",
-              path: "components/graph/utils/constants.ts",
-            },
-          ],
-        },
-      ],
-    },
-    {
-      type: "folder",
-      name: "sidebar",
-      path: "components/sidebar",
-      isExpanded: false,
-      children: [
-        {
-          type: "file",
-          name: "app-sidebar.tsx",
-          path: "components/sidebar/app-sidebar.tsx",
-        },
-        {
-          type: "file",
-          name: "search-form.tsx",
-          path: "components/sidebar/search-form.tsx",
-        },
-      ],
-    },
-    {
-      type: "folder",
-      name: "ui",
-      path: "components/ui",
-      isExpanded: false,
-      children: [
-        {
-          type: "file",
-          name: ".gitkeep",
-          path: "components/ui/.gitkeep",
-        },
-        {
-          type: "file",
-          name: "app-header.tsx",
-          path: "components/ui/app-header.tsx",
-        },
-        {
-          type: "file",
-          name: "base-node.tsx",
-          path: "components/ui/base-node.tsx",
-        },
-        {
-          type: "file",
-          name: "theme-provider.tsx",
-          path: "components/ui/theme-provider.tsx",
-        },
-      ],
-    },
-    {
-      type: "file",
-      name: "index.html",
-      path: "components/index.html",
-    },
-    {
-      type: "file",
-      name: "styles.css",
-      path: "components/styles.css",
-    },
-    {
-      type: "file",
-      name: "script.js",
-      path: "components/script.js",
-    },
-  ],
-}
+import type { FileTreeItem, FolderTreeItem, TreeItem } from "@/app/types/types"
 
 /**
  * Recursive component to render file tree items
@@ -293,7 +135,8 @@ export function AppSidebar({
   minimapOn: boolean
   setMinimapOn: (val: boolean) => void
 }) {
-  const project = getProject(slug)
+  const { username, repoName } = useRepoStore()
+  const { fileTree } = useFlowStore()
   const [currentHash, setCurrentHash] = useState("")
 
   // Track hash changes for active state
@@ -314,6 +157,8 @@ export function AppSidebar({
     setCurrentHash(hash)
   }
 
+  const projectName = repoName || slug
+
   return (
     <Sidebar {...props}>
       <SidebarHeader>
@@ -325,29 +170,35 @@ export function AppSidebar({
               strokeWidth={2}
             />
           </span>
-          <span className="truncate">
-            {project.error ? project.error : project.name}
-          </span>
+          <span className="truncate">{projectName}</span>
         </div>
         <SearchForm />
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>{fileTree.name}</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {fileTree.children.map((child) => (
-                <TreeNode
-                  key={child.path}
-                  item={child}
-                  currentHash={currentHash}
-                  onHashChange={handleHashChange}
-                />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {fileTree ? (
+          <SidebarGroup>
+            <SidebarGroupLabel>{fileTree.name}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {fileTree.children.map((child) => (
+                  <TreeNode
+                    key={child.path}
+                    item={child}
+                    currentHash={currentHash}
+                    onHashChange={handleHashChange}
+                  />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ) : (
+          <div className="flex h-full items-center justify-center p-4">
+            <p className="text-center text-sm text-muted-foreground">
+              No file tree data available
+            </p>
+          </div>
+        )}
       </SidebarContent>
 
       <SidebarFooter>
@@ -371,3 +222,5 @@ export function AppSidebar({
     </Sidebar>
   )
 }
+
+// Made with Bob

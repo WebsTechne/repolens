@@ -372,7 +372,9 @@ function resolveImportPath(
       }
 
       if (matched) {
-        console.log(`[Parser] Resolved alias: "${importPath}" -> "${targetPath}"`)
+        console.log(
+          `[Parser] Resolved alias: "${importPath}" -> "${targetPath}"`
+        )
         break
       }
     }

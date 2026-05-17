@@ -1,8 +1,8 @@
 "use client"
 
 import { HugeiconsIcon } from "@hugeicons/react"
-import { getProject } from "./sidebar/app-sidebar"
-import { SidebarTrigger, useSidebar } from "./ui/sidebar"
+import { useRepoStore } from "@/lib/store/repo-store"
+import { useSidebar } from "./ui/sidebar"
 import {
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
@@ -15,17 +15,19 @@ import { useDetails } from "@/contexts/details-context"
 export function AppHeader({ slug }: { slug: string }) {
   const { open, toggleSidebar } = useSidebar()
   const { detailsOpen, setDetailsOpen } = useDetails()
-  const project = getProject(slug)
+  const { repoName } = useRepoStore()
+
+  const projectName = repoName || slug
 
   return (
     <header
       className={cn(
-        "pointer-events-none absolute top-0 z-1000 flex-between h-16 w-full px-3 py-3",
-        "[&>section]:pointer-events-auto [&>section]:h-10 [&>section]:rounded-lg [&>section]:border [&>section]:bg-muted"
+        "pointer-events-none absolute top-0 z-1000 flex-between h-16 w-full border-b border-border/60 bg-background/80 px-4 py-3 backdrop-blur",
+        "[&>section]:pointer-events-auto [&>section]:h-10 [&>section]:rounded-full [&>section]:border [&>section]:border-border/60 [&>section]:bg-card/80 [&>section]:shadow-sm"
       )}
     >
       <section
-        className="flex-between cursor-pointer gap-4 px-3 hover:opacity-90"
+        className="inline-flex cursor-pointer items-center gap-2 px-4 text-sm leading-none font-medium text-foreground transition hover:bg-card/90 hover:shadow-md"
         onClick={toggleSidebar}
       >
         <HugeiconsIcon
@@ -33,12 +35,12 @@ export function AppHeader({ slug }: { slug: string }) {
           size={20}
           strokeWidth={2}
         />
-        {project.error ? project.error : project.name}
+        {projectName}
       </section>
 
       <section
-        className="flex-between cursor-pointer gap-4 px-3 hover:opacity-90"
-        onClick={() => setDetailsOpen(true)}
+        className="ml-auto inline-flex cursor-pointer items-center gap-2 px-4 text-sm leading-none font-medium text-foreground transition hover:bg-card/90 hover:shadow-md"
+        onClick={() => setDetailsOpen(!detailsOpen)}
       >
         Details
         <HugeiconsIcon

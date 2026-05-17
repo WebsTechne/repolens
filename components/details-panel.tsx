@@ -3,9 +3,12 @@
 import { useDetails } from "@/contexts/details-context"
 import { cn } from "@/lib/utils"
 import { Button } from "./ui/button"
+import { useQuery } from "@tanstack/react-query"
 import { Cancel01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { mockNodes, type NodeData } from "@/lib/mock-data"
+import { useFlowStore } from "@/lib/store/flow-store"
+import { useRepoStore } from "@/lib/store/repo-store"
+import type { NodeData } from "@/app/types/types"
 import { useEffect, useState } from "react"
 import { ScrollArea } from "./ui/scroll-area"
 import Image from "next/image"
@@ -14,10 +17,42 @@ import { Skeleton } from "./ui/skeleton"
 
 export function DetailsPanel() {
   const { detailsOpen, toggleDetails } = useDetails()
+  const { nodes } = useFlowStore()
+  const { username, repoName, branchName } = useRepoStore()
   const [currentHash, setCurrentHash] = useState("")
   const [nodeData, setNodeData] = useState<NodeData | null>(null)
 
   const [aiMode, setAiMode] = useState(false)
+  const resolvedRef = branchName || "main"
+
+  const aiSummaryQuery = useQuery({
+    queryKey: ["ai-summary", username, repoName, resolvedRef, nodeData?.path],
+    enabled: Boolean(aiMode && nodeData?.path && username && repoName),
+    queryFn: async () => {
+      const response = await fetch("/api/github-gemini", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          owner: username,
+          repo: repoName,
+          filePath: nodeData?.path,
+          ref: resolvedRef,
+          prompt:
+            "Provide a concise summary of this file, including its responsibility and key exports.",
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok || !data?.success) {
+        throw new Error(
+          data?.details || data?.error || "Failed to load summary"
+        )
+      }
+
+      return data.gemini?.text || ""
+    },
+  })
 
   const exit = () => {
     toggleDetails()
@@ -32,7 +67,7 @@ export function DetailsPanel() {
 
       // Find matching node data
       if (hash) {
-        const matchingNode = mockNodes.find((node) => node.data.path === hash)
+        const matchingNode = nodes.find((node) => node.data.path === hash)
         setNodeData(matchingNode?.data || null)
       } else {
         setNodeData(null)
@@ -52,7 +87,7 @@ export function DetailsPanel() {
       window.removeEventListener("hashchange", updateHash)
       clearInterval(interval)
     }
-  }, [])
+  }, [nodes])
 
   return (
     <section
@@ -92,9 +127,9 @@ export function DetailsPanel() {
                     Imports ({nodeData.imports.length})
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {nodeData.imports.map((imp) => (
+                    {nodeData.imports.map((imp, idx) => (
                       <span
-                        key={imp.name}
+                        key={`${imp.source}-${idx}`}
                         className={cn(
                           "rounded-md px-2 py-1 font-mono text-xs",
                           imp.kind === "external"
@@ -102,7 +137,7 @@ export function DetailsPanel() {
                             : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
                         )}
                       >
-                        {imp.name}
+                        {imp.source}
                       </span>
                     ))}
                   </div>
@@ -170,16 +205,36 @@ export function DetailsPanel() {
               <Switch checked={aiMode} onCheckedChange={setAiMode} />
             </div>
 
-            <div className="flex flex-col gap-1.5 py-2">
-              <Skeleton className="h-4 w-9/10 rounded-sm" />
-              <Skeleton className="h-4 w-7/10 rounded-sm" />
-              <Skeleton className="h-4 w-5/10 rounded-sm" /> <br />
-              <Skeleton className="h-4 w-8/10 rounded-sm" />
-              <Skeleton className="h-4 w-6/10 rounded-sm" />
-            </div>
+            {aiMode ? (
+              aiSummaryQuery.isPending ? (
+                <div className="flex flex-col gap-1.5 py-2">
+                  <Skeleton className="h-4 w-9/10 rounded-sm" />
+                  <Skeleton className="h-4 w-7/10 rounded-sm" />
+                  <Skeleton className="h-4 w-5/10 rounded-sm" /> <br />
+                  <Skeleton className="h-4 w-8/10 rounded-sm" />
+                  <Skeleton className="h-4 w-6/10 rounded-sm" />
+                </div>
+              ) : aiSummaryQuery.isError ? (
+                <p className="text-sm text-destructive">
+                  {aiSummaryQuery.error instanceof Error
+                    ? aiSummaryQuery.error.message
+                    : "Failed to load summary"}
+                </p>
+              ) : (
+                <p className="text-sm leading-relaxed text-foreground">
+                  {aiSummaryQuery.data || "No summary available for this file."}
+                </p>
+              )
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Toggle to generate a summary for this file.
+              </p>
+            )}
           </div>
         )}
       </ScrollArea>
     </section>
   )
 }
+
+// Made with Bob

@@ -18,6 +18,7 @@ export type FlowNode = {
   id: string
   type: string
   data: NodeData
+  position?: { x: number; y: number }
 }
 
 export type FlowEdge = {

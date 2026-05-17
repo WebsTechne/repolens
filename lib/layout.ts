@@ -1,5 +1,5 @@
 import dagre from "@dagrejs/dagre"
-import { FlowNode, FlowEdge } from "./mock-data"
+import type { FlowNode, FlowEdge } from "@/app/types/types"
 
 const NODE_WIDTH = 208 // matches your w-52 card
 const NODE_HEIGHT = 80 // approximate card height

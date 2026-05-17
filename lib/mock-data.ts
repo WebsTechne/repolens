@@ -1,31 +1,6 @@
-// types you'll want defined
-type ImportKind = "external" | "local"
+import type { FlowNode, FlowEdge } from "@/app/types/types"
 
-type Import = {
-  name: string
-  kind: ImportKind
-}
-
-type NodeData = {
-  filename: string
-  path: string
-  imports: Import[] // replaces deps
-  exports: string[]
-}
-
-type FlowNode = {
-  id: string // use the full file path as ID
-  type: string
-  data: NodeData
-}
-
-type FlowEdge = {
-  id: string // just "source->target" works
-  source: string // node id
-  target: string // node id
-}
-
-export type { NodeData, FlowNode, FlowEdge }
+export type { FlowNode, FlowEdge }
 
 export const mockNodes: FlowNode[] = [
   {
@@ -45,8 +20,8 @@ export const mockNodes: FlowNode[] = [
       filename: "layout.tsx",
       path: "src/app/layout.tsx",
       imports: [
-        { name: "next/font", kind: "external" },
-        { name: "../components/Button", kind: "local" },
+        { source: "next/font", names: ["Inter"], kind: "external" },
+        { source: "../components/Button", names: ["Button"], kind: "local" },
       ],
       exports: ["default"],
     },
@@ -58,9 +33,9 @@ export const mockNodes: FlowNode[] = [
       filename: "auth.ts",
       path: "src/utils/auth.ts",
       imports: [
-        { name: "jsonwebtoken", kind: "external" },
-        { name: "bcrypt", kind: "external" },
-        { name: "../types/index", kind: "local" },
+        { source: "jsonwebtoken", names: ["sign", "verify"], kind: "external" },
+        { source: "bcrypt", names: ["hash", "compare"], kind: "external" },
+        { source: "../types/index", names: ["User"], kind: "local" },
       ],
       exports: ["verifyToken", "generateJWT"],
     },
@@ -72,8 +47,8 @@ export const mockNodes: FlowNode[] = [
       filename: "api.ts",
       path: "src/utils/api.ts",
       imports: [
-        { name: "axios", kind: "external" },
-        { name: "../types/index", kind: "local" },
+        { source: "axios", names: ["default"], kind: "external" },
+        { source: "../types/index", names: ["ApiResponse"], kind: "local" },
       ],
       exports: ["fetcher", "postJSON", "handleError"],
     },
@@ -85,9 +60,9 @@ export const mockNodes: FlowNode[] = [
       filename: "useAuth.ts",
       path: "src/hooks/useAuth.ts",
       imports: [
-        { name: "zustand", kind: "external" },
-        { name: "../utils/auth", kind: "local" },
-        { name: "../types/index", kind: "local" },
+        { source: "zustand", names: ["create"], kind: "external" },
+        { source: "../utils/auth", names: ["verifyToken"], kind: "local" },
+        { source: "../types/index", names: ["User"], kind: "local" },
       ],
       exports: ["useAuth"],
     },
@@ -98,7 +73,9 @@ export const mockNodes: FlowNode[] = [
     data: {
       filename: "useForm.ts",
       path: "src/hooks/useForm.ts",
-      imports: [{ name: "../types/index", kind: "local" }],
+      imports: [
+        { source: "../types/index", names: ["FormState"], kind: "local" },
+      ],
       exports: ["useForm", "useField"],
     },
   },
@@ -119,9 +96,13 @@ export const mockNodes: FlowNode[] = [
       filename: "Modal.tsx",
       path: "src/components/Modal.tsx",
       imports: [
-        { name: "@radix-ui/react-dialog", kind: "external" },
-        { name: "./Button", kind: "local" },
-        { name: "../hooks/useForm", kind: "local" },
+        {
+          source: "@radix-ui/react-dialog",
+          names: ["Dialog"],
+          kind: "external",
+        },
+        { source: "./Button", names: ["Button"], kind: "local" },
+        { source: "../hooks/useForm", names: ["useForm"], kind: "local" },
       ],
       exports: ["Modal"],
     },

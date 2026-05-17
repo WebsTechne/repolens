@@ -5,11 +5,23 @@ import { DetailsPanel } from "@/components/details-panel"
 import Graph from "@/components/graph"
 import { AppSidebar } from "@/components/sidebar/app-sidebar"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
-import { DetailsProvider, useDetails } from "@/contexts/details-context"
+import { DetailsProvider } from "@/contexts/details-context"
 import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { useFlowStore } from "@/lib/store/flow-store"
+import { useRouter } from "next/navigation"
 
 function PageClientContent({ slug }: { slug: string }) {
   const [minimapOn, setMinimapOn] = useState(true)
+  const { clearFlowData } = useFlowStore()
+  const [clearing, setClearing] = useState(false)
+  const router = useRouter()
+
+  const handleClearData = async () => {
+    setClearing(true)
+    await clearFlowData()
+    router.push("/")
+  }
 
   return (
     <SidebarProvider>
@@ -21,6 +33,17 @@ function PageClientContent({ slug }: { slug: string }) {
       <SidebarInset>
         <main className="relative h-dvh w-full overflow-clip">
           <AppHeader slug={slug} />
+          <div className="pointer-events-none absolute top-20 right-4 z-10">
+            <Button
+              size="sm"
+              variant="outline"
+              className="pointer-events-auto"
+              onClick={handleClearData}
+              disabled={clearing}
+            >
+              {clearing ? "Clearing..." : "Clear data"}
+            </Button>
+          </div>
           <div className="h-dvh w-[100vw-18rem] md:w-[100vw-16rem]">
             <Graph minimapOn={minimapOn} />
           </div>
