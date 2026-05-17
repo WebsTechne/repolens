@@ -5,10 +5,19 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useFlowStore } from "@/lib/store/flow-store"
+import { useRepoStore } from "@/lib/store/repo-store"
 
 const Page = () => {
   const { nodes, edges, isHydrated, setFlowData, clearFlowData, hasFlowData } =
     useFlowStore()
+  const {
+    username,
+    repoName,
+    branchName,
+    setUsername,
+    setRepoName,
+    setBranchName,
+  } = useRepoStore()
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [message, setMessage] = useState("")
@@ -204,6 +213,42 @@ const Page = () => {
         </div>
 
         <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="username">GitHub Username</Label>
+            <Input
+              id="username"
+              type="text"
+              placeholder="octocat"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              disabled={uploading}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="repoName">Repository Name</Label>
+            <Input
+              id="repoName"
+              type="text"
+              placeholder="my-repo"
+              value={repoName}
+              onChange={(e) => setRepoName(e.target.value)}
+              disabled={uploading}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="branchName">Branch Name</Label>
+            <Input
+              id="branchName"
+              type="text"
+              placeholder="main"
+              value={branchName}
+              onChange={(e) => setBranchName(e.target.value)}
+              disabled={uploading}
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="file">ZIP File</Label>
             <Input
