@@ -1,3 +1,4 @@
+import path from "path" // Native Node module works perfectly on server-side workers
 import { Project, SourceFile } from "ts-morph"
 import type { FlowNode, FlowEdge, NodeData, Import } from "@/app/types/types"
 
@@ -20,7 +21,7 @@ export function parseCodeToFlow(
   codeFiles: CodeFiles,
   tsconfigContent?: string
 ): ParseResult {
-  // Create a ts-morph project
+  // Create an In-Memory ts-morph project
   const project = new Project({
     useInMemoryFileSystem: true,
     compilerOptions: {
@@ -33,7 +34,7 @@ export function parseCodeToFlow(
     },
   })
 
-  // Parse tsconfig if provided to get path mappings
+  // Parse tsconfig if provided to extract path mappings
   let pathMappings: Record<string, string[]> = {}
   let baseUrl = "."
 
@@ -51,7 +52,7 @@ export function parseCodeToFlow(
     }
   }
 
-  // Add all files to the project
+  // Add all unzipped memory files to the virtual project space
   const sourceFiles: Map<string, SourceFile> = new Map()
   for (const [filePath, content] of Object.entries(codeFiles)) {
     const sourceFile = project.createSourceFile(filePath, content, {
@@ -62,9 +63,9 @@ export function parseCodeToFlow(
 
   const nodes: FlowNode[] = []
   const edges: FlowEdge[] = []
-  const edgeSet = new Set<string>() // Track unique edges
+  const edgeSet = new Set<string>() // Track unique edge paths
 
-  // Process each file
+  // Process each source file node
   for (const [filePath, sourceFile] of sourceFiles) {
     const nodeData = extractNodeData(
       sourceFile,
@@ -74,7 +75,7 @@ export function parseCodeToFlow(
       codeFiles
     )
 
-    // Create node
+    // Create the visual React Flow node frame
     const node: FlowNode = {
       id: filePath,
       type: "custom",
@@ -82,7 +83,7 @@ export function parseCodeToFlow(
     }
     nodes.push(node)
 
-    // Create edges for local imports
+    // Create connected dependency edges for all discovered local imports
     for (const imp of nodeData.imports) {
       if (imp.kind === "local") {
         const edgeId = `${filePath}->${imp.name}`
@@ -102,7 +103,7 @@ export function parseCodeToFlow(
 }
 
 /**
- * Extracts node data from a source file
+ * Extracts dependency node metadata and module exports from a source file
  */
 function extractNodeData(
   sourceFile: SourceFile,
@@ -114,12 +115,12 @@ function extractNodeData(
   const imports: Import[] = []
   const exports: string[] = []
 
-  // Extract imports
+  // 1. Process and resolve file imports
   const importDeclarations = sourceFile.getImportDeclarations()
   for (const importDecl of importDeclarations) {
     const moduleSpecifier = importDecl.getModuleSpecifierValue()
 
-    // Resolve the import path
+    // Resolve the internal system path
     const resolvedPath = resolveImportPath(
       moduleSpecifier,
       filePath,
@@ -136,8 +137,8 @@ function extractNodeData(
     })
   }
 
-  // Extract exports
-  // Named exports
+  // 2. Extract explicitly declared module exports
+  // Named exports (e.g., export { a, b })
   const exportDeclarations = sourceFile.getExportDeclarations()
   for (const exportDecl of exportDeclarations) {
     const namedExports = exportDecl.getNamedExports()
@@ -146,7 +147,7 @@ function extractNodeData(
     }
   }
 
-  // Export assignments (export default, export =)
+  // Export assignments (e.g., export default, export =)
   const exportAssignments = sourceFile.getExportAssignments()
   for (const exportAssignment of exportAssignments) {
     if (exportAssignment.isExportEquals()) {
@@ -156,21 +157,21 @@ function extractNodeData(
     }
   }
 
-  // Exported functions
+  // Explicit inline exported functions
   sourceFile.getFunctions().forEach((func) => {
     if (func.isExported()) {
       exports.push(func.getName() || "anonymous")
     }
   })
 
-  // Exported classes
+  // Explicit inline exported classes
   sourceFile.getClasses().forEach((cls) => {
     if (cls.isExported()) {
       exports.push(cls.getName() || "anonymous")
     }
   })
 
-  // Exported variables
+  // Explicit inline exported variables
   sourceFile.getVariableStatements().forEach((varStatement) => {
     if (varStatement.isExported()) {
       varStatement.getDeclarations().forEach((decl) => {
@@ -179,21 +180,21 @@ function extractNodeData(
     }
   })
 
-  // Exported interfaces
+  // Explicit inline exported interfaces
   sourceFile.getInterfaces().forEach((iface) => {
     if (iface.isExported()) {
       exports.push(iface.getName())
     }
   })
 
-  // Exported type aliases
+  // Explicit inline exported type aliases
   sourceFile.getTypeAliases().forEach((typeAlias) => {
     if (typeAlias.isExported()) {
       exports.push(typeAlias.getName())
     }
   })
 
-  // Exported enums
+  // Explicit inline exported enums
   sourceFile.getEnums().forEach((enumDecl) => {
     if (enumDecl.isExported()) {
       exports.push(enumDecl.getName())
@@ -206,12 +207,12 @@ function extractNodeData(
     filename,
     path: filePath,
     imports,
-    exports: [...new Set(exports)], // Remove duplicates
+    exports: [...new Set(exports)], // Dedup duplicate entries safely
   }
 }
 
 /**
- * Resolves an import path to an actual file path
+ * Resolves an abstract import path or path alias down to an actual exact memory file key
  */
 function resolveImportPath(
   importPath: string,
@@ -220,74 +221,55 @@ function resolveImportPath(
   baseUrl: string,
   allFiles: CodeFiles
 ): string | null {
-  // External module (node_modules)
-  if (!importPath.startsWith(".") && !importPath.startsWith("/")) {
-    // Check if it matches a path alias
+  let targetPath = importPath
+  const isRelative = importPath.startsWith(".") || importPath.startsWith("/")
+
+  // 1. Resolve path alias mappings (e.g., '@/components/*')
+  if (!isRelative) {
+    let matched = false
     for (const [alias, paths] of Object.entries(pathMappings)) {
       const aliasPattern = alias.replace("/*", "")
       if (importPath.startsWith(aliasPattern)) {
-        const relativePath = importPath.substring(aliasPattern.length)
+        const relativeSuffix = importPath.substring(aliasPattern.length)
+
         for (const mappedPath of paths) {
-          const resolvedPath = mappedPath
+          const resolvedMapping = mappedPath
             .replace("/*", "")
-            .replace("*", relativePath)
+            .replace("*", relativeSuffix)
 
-          // Try to find the file with various extensions
-          const candidates = [
-            resolvedPath,
-            `${resolvedPath}.ts`,
-            `${resolvedPath}.tsx`,
-            `${resolvedPath}.js`,
-            `${resolvedPath}.jsx`,
-            `${resolvedPath}/index.ts`,
-            `${resolvedPath}/index.tsx`,
-            `${resolvedPath}/index.js`,
-            `${resolvedPath}/index.jsx`,
-          ]
-
-          for (const candidate of candidates) {
-            if (allFiles[candidate]) {
-              return candidate
-            }
-          }
+          // Clean up standard leading dots from tsconfig base dirs safely
+          const baseDir = baseUrl.replace(/^\.\/?/, "")
+          targetPath = path.join(baseDir, resolvedMapping)
+          matched = true
+          break
         }
       }
-    }
-    // Not a local file
-    return null
-  }
-
-  // Relative import
-  const currentDir = currentFilePath.split("/").slice(0, -1).join("/")
-  let resolvedPath = importPath
-
-  if (importPath.startsWith(".")) {
-    // Resolve relative path
-    const parts = currentDir.split("/")
-    const importParts = importPath.split("/")
-
-    for (const part of importParts) {
-      if (part === "..") {
-        parts.pop()
-      } else if (part !== ".") {
-        parts.push(part)
-      }
+      if (matched) break
     }
 
-    resolvedPath = parts.join("/")
+    // If it did not match an alias structure and isn't relative, it's a standard node_module
+    if (!matched) return null
+  } else {
+    // 2. Resolve standard relative lookups safely using path.dirname
+    const currentDir = path.dirname(currentFilePath)
+    targetPath = path.join(currentDir, importPath)
   }
 
-  // Try to find the file with various extensions
+  // 3. Normalize structural noise ('..', '.', double slashes) out of the path string
+  // and force forward-slashes to ensure compatibility with your unzipped dictionary format
+  const normalizedTarget = path.normalize(targetPath).replace(/\\/g, "/")
+
+  // 4. Check potential file resolution candidates sequentially
   const candidates = [
-    resolvedPath,
-    `${resolvedPath}.ts`,
-    `${resolvedPath}.tsx`,
-    `${resolvedPath}.js`,
-    `${resolvedPath}.jsx`,
-    `${resolvedPath}/index.ts`,
-    `${resolvedPath}/index.tsx`,
-    `${resolvedPath}/index.js`,
-    `${resolvedPath}/index.jsx`,
+    normalizedTarget,
+    `${normalizedTarget}.ts`,
+    `${normalizedTarget}.tsx`,
+    `${normalizedTarget}.js`,
+    `${normalizedTarget}.jsx`,
+    `${normalizedTarget}/index.ts`,
+    `${normalizedTarget}/index.tsx`,
+    `${normalizedTarget}/index.js`,
+    `${normalizedTarget}/index.jsx`,
   ]
 
   for (const candidate of candidates) {
@@ -298,5 +280,3 @@ function resolveImportPath(
 
   return null
 }
-
-// Made with Bob

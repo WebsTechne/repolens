@@ -18,17 +18,22 @@ interface WorkerResponse {
 /**
  * Run ts-morph parsing in a worker thread to avoid blocking
  */
-function parseInWorker(
+
+export function parseInWorker(
   codeFiles: Record<string, string>,
   tsconfigContent?: string
 ): Promise<ParseResult> {
   return new Promise((resolve, reject) => {
+    // Resolve the path to the compiled JavaScript worker file
+    // 1. Target your raw TypeScript worker file directly
     const workerPath = path.join(process.cwd(), "lib", "parse-worker.ts")
 
+    // 2. Spawn the worker, telling Node to use 'tsx' to execute the TypeScript
     const worker = new Worker(workerPath, {
-      execArgv: ["--require", "tsx/cjs"],
+      execArgv: ["--import", "tsx"], // 👈 This interprets your .ts file instantly on the backend
     })
 
+    // Node.js Event Listeners (Use .on instead of .onmessage)
     worker.on("message", (response: WorkerResponse) => {
       if (response.success && response.data) {
         resolve(response.data)
@@ -49,7 +54,7 @@ function parseInWorker(
       }
     })
 
-    // Send data to worker
+    // Send data to Node worker thread
     worker.postMessage({ codeFiles, tsconfigContent })
   })
 }
