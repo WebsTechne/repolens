@@ -11,6 +11,8 @@ import {
   Folder02Icon,
   Folder03Icon,
   File02Icon,
+  Delete02Icon,
+  FullScreenIcon,
 } from "@hugeicons/core-free-icons"
 import { SearchForm } from "./search-form"
 import {
@@ -42,6 +44,8 @@ import {
 import { useDetails } from "@/contexts/details-context"
 
 import type { FileTreeItem, FolderTreeItem, TreeItem } from "@/app/types/types"
+import { Button } from "../ui/button"
+import { useRouter } from "next/navigation"
 
 /**
  * Recursive component to render file tree items
@@ -138,6 +142,15 @@ export function AppSidebar({
   const { username, repoName } = useRepoStore()
   const { fileTree } = useFlowStore()
   const [currentHash, setCurrentHash] = useState("")
+  const { clearFlowData } = useFlowStore()
+  const [clearing, setClearing] = useState(false)
+  const router = useRouter()
+
+  const handleClearData = async () => {
+    setClearing(true)
+    await clearFlowData()
+    router.push("/")
+  }
 
   // Track hash changes for active state
   useEffect(() => {
@@ -202,21 +215,36 @@ export function AppSidebar({
       </SidebarContent>
 
       <SidebarFooter>
-        <FieldLabel htmlFor="switch-minimap" className="cursor-pointer">
-          <Field orientation="horizontal">
-            <FieldContent>
-              <FieldTitle>Enable minimap</FieldTitle>
-              <FieldDescription>
-                A tiny view of your node tree.
-              </FieldDescription>
-            </FieldContent>
-            <Switch
-              id="switch-minimap"
-              checked={minimapOn}
-              onCheckedChange={setMinimapOn}
-            />
-          </Field>
-        </FieldLabel>
+        <SidebarMenu className="gap-2">
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={() => setMinimapOn(!minimapOn)}>
+              <HugeiconsIcon icon={FullScreenIcon} strokeWidth={2} />
+              <span className="flex-1">Enable Minimap</span>
+              <Switch
+                id="switch-minimap"
+                checked={minimapOn}
+                onCheckedChange={setMinimapOn}
+                className="float-right"
+              />
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              render={
+                <Button
+                  variant="destructive"
+                  className="gap-1 hover:text-destructive! hover:opacity-80!"
+                  onClick={handleClearData}
+                  disabled={clearing}
+                />
+              }
+            >
+              <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
+              {clearing ? "Clearing..." : "Clear data"}
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

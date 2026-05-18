@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es2020",
+    "moduleResolution": "node",
+    "outDir": "worker-dist",
+    "noEmit": false,
+    "allowImportingTsExtensions": false,
+    "declaration": false,
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": ["lib/**/*", "app/types/**/*"],
+  "exclude": ["worker-dist", "node_modules"]
+}

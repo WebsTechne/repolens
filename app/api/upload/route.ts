@@ -19,11 +19,15 @@ function parseInWorker(
   tsconfigContent?: string
 ): Promise<ParseResult> {
   return new Promise((resolve, reject) => {
-    const workerPath = path.join(process.cwd(), "lib", "parse-worker.ts")
+    // Point directly at the TS worker file
+    const workerPath = path.join(
+      process.cwd(),
+      "worker-dist",
+      "lib",
+      "parse-worker.cjs"
+    )
 
-    const worker = new Worker(workerPath, {
-      execArgv: ["--import", "tsx"],
-    })
+    const worker = new Worker(workerPath)
 
     worker.on("message", (response: WorkerResponse) => {
       if (response.success && response.data) {

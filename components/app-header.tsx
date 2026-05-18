@@ -22,7 +22,7 @@ export function AppHeader({ slug }: { slug: string }) {
   return (
     <header
       className={cn(
-        "pointer-events-none absolute top-0 z-1000 flex-between h-16 w-full border-b border-border/60 bg-background/80 px-4 py-3 backdrop-blur",
+        "pointer-events-none absolute top-0 z-1000 flex-between h-16 w-full px-4 py-3",
         "[&>section]:pointer-events-auto [&>section]:h-10 [&>section]:rounded-full [&>section]:border [&>section]:border-border/60 [&>section]:bg-card/80 [&>section]:shadow-sm"
       )}
     >
