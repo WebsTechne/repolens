@@ -33,17 +33,6 @@ function PageClientContent({ slug }: { slug: string }) {
       <SidebarInset>
         <main className="relative h-dvh w-full overflow-clip">
           <AppHeader slug={slug} />
-          <div className="pointer-events-none absolute top-20 right-4 z-10">
-            <Button
-              size="sm"
-              variant="outline"
-              className="pointer-events-auto"
-              onClick={handleClearData}
-              disabled={clearing}
-            >
-              {clearing ? "Clearing..." : "Clear data"}
-            </Button>
-          </div>
           <div className="h-dvh w-[100vw-18rem] md:w-[100vw-16rem]">
             <Graph minimapOn={minimapOn} />
           </div>

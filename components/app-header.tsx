@@ -23,11 +23,11 @@ export function AppHeader({ slug }: { slug: string }) {
     <header
       className={cn(
         "pointer-events-none absolute top-0 z-1000 flex-between h-16 w-full px-4 py-3",
-        "[&>section]:pointer-events-auto [&>section]:h-10 [&>section]:rounded-full [&>section]:border [&>section]:border-border/60 [&>section]:bg-card/80 [&>section]:shadow-sm"
+        "[&>section]:pointer-events-auto [&>section]:h-10 [&>section]:rounded-full [&>section]:border [&>section]:bg-card/80"
       )}
     >
       <section
-        className="inline-flex cursor-pointer items-center gap-2 px-4 text-sm leading-none font-medium text-foreground transition hover:bg-card/90 hover:shadow-md"
+        className="inline-flex cursor-pointer items-center gap-2 px-4 text-sm leading-none font-medium text-foreground transition hover:bg-card/90 hover:shadow-sm"
         onClick={toggleSidebar}
       >
         <HugeiconsIcon
@@ -39,7 +39,7 @@ export function AppHeader({ slug }: { slug: string }) {
       </section>
 
       <section
-        className="ml-auto inline-flex cursor-pointer items-center gap-2 px-4 text-sm leading-none font-medium text-foreground transition hover:bg-card/90 hover:shadow-md"
+        className="inline-flex cursor-pointer items-center gap-2 px-4 text-sm leading-none font-medium text-foreground transition hover:bg-card/90 hover:shadow-sm"
         onClick={() => setDetailsOpen(!detailsOpen)}
       >
         Details

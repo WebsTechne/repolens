@@ -68,7 +68,7 @@ const readGitHubError = async (response: Response) => {
   return response.statusText
 }
 
-const fetchGitHubJson = async <T,>(url: string, token: string) => {
+const fetchGitHubJson = async <T>(url: string, token: string) => {
   const response = await fetch(url, {
     headers: getGitHubHeaders(token, "application/vnd.github+json"),
   })
@@ -156,7 +156,12 @@ const getMetadataViaTree = async (
   return { sha: entry.sha, size: blobMeta.size }
 }
 
-const fetchRawBlobContent = async (sha: string, owner: string, repo: string, token: string) => {
+const fetchRawBlobContent = async (
+  sha: string,
+  owner: string,
+  repo: string,
+  token: string
+) => {
   const response = await fetch(
     `https://api.github.com/repos/${owner}/${repo}/git/blobs/${sha}`,
     {
@@ -226,7 +231,13 @@ export async function POST(request: NextRequest) {
     )
 
     if (!metadata) {
-      metadata = await getMetadataViaTree(owner, repo, filePath, ref, githubToken)
+      metadata = await getMetadataViaTree(
+        owner,
+        repo,
+        filePath,
+        ref,
+        githubToken
+      )
     }
 
     if (metadata.size < MIN_FILE_BYTES) {
@@ -282,6 +293,7 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error"
+    console.error("[github-gemini] 500:", message, error) // add this
     return NextResponse.json(
       {
         success: false,

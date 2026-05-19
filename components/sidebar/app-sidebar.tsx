@@ -13,6 +13,8 @@ import {
   File02Icon,
   Delete02Icon,
   FullScreenIcon,
+  Moon02Icon,
+  Sun02Icon,
 } from "@hugeicons/core-free-icons"
 import { SearchForm } from "./search-form"
 import {
@@ -46,6 +48,7 @@ import { useDetails } from "@/contexts/details-context"
 import type { FileTreeItem, FolderTreeItem, TreeItem } from "@/app/types/types"
 import { Button } from "../ui/button"
 import { useRouter } from "next/navigation"
+import { useTheme } from "next-themes"
 
 /**
  * Recursive component to render file tree items
@@ -146,6 +149,8 @@ export function AppSidebar({
   const [clearing, setClearing] = useState(false)
   const router = useRouter()
 
+  const { resolvedTheme: theme, setTheme } = useTheme()
+
   const handleClearData = async () => {
     setClearing(true)
     await clearFlowData()
@@ -215,16 +220,32 @@ export function AppSidebar({
       </SidebarContent>
 
       <SidebarFooter>
-        <SidebarMenu className="gap-2">
-          <SidebarMenuItem>
+        <SidebarMenu>
+          <SidebarMenuItem className="flex min-h-8 items-center justify-between p-2 py-0 text-sm">
+            {/*<div className="pointer-events-none flex justify-between">*/}
+            Switch theme
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+            >
+              <HugeiconsIcon
+                icon={theme === "light" ? Moon02Icon : Sun02Icon}
+                strokeWidth={2}
+                className="size-5!"
+              />
+            </Button>
+            {/* </div>*/}
+          </SidebarMenuItem>
+
+          <SidebarMenuItem className="mb-2">
             <SidebarMenuButton onClick={() => setMinimapOn(!minimapOn)}>
-              <HugeiconsIcon icon={FullScreenIcon} strokeWidth={2} />
+              {/*<HugeiconsIcon icon={FullScreenIcon} strokeWidth={2} />*/}
               <span className="flex-1">Enable Minimap</span>
               <Switch
                 id="switch-minimap"
                 checked={minimapOn}
                 onCheckedChange={setMinimapOn}
-                className="float-right"
               />
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -234,7 +255,7 @@ export function AppSidebar({
               render={
                 <Button
                   variant="destructive"
-                  className="gap-1 hover:text-destructive! hover:opacity-80!"
+                  className="gap-1 hover:bg-destructive/20! hover:text-destructive! hover:opacity-80! dark:hover:bg-destructive/30"
                   onClick={handleClearData}
                   disabled={clearing}
                 />

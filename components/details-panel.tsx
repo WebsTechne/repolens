@@ -98,8 +98,8 @@ export function DetailsPanel() {
           : "pointer-events-none -right-25 opacity-0"
       )}
     >
-      <ScrollArea className="h-full [&_.section]:mb-4 [&_.section]:px-4">
-        <div className="section flex-between gap-0.5">
+      <ScrollArea className="relative h-full [&_.section]:mb-4 [&_.section]:px-4">
+        <div className="section sticky top-0 flex-between gap-0.5 bg-card">
           <h2 className="text-xl font-semibold">Details</h2>
           <Button size="icon-lg" variant="ghost" onClick={exit}>
             <HugeiconsIcon icon={Cancel01Icon} />
@@ -226,9 +226,7 @@ export function DetailsPanel() {
                 </p>
               )
             ) : (
-              <p className="text-sm text-muted-foreground">
-                Toggle to generate a summary for this file.
-              </p>
+              <></>
             )}
           </div>
         )}

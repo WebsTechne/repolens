@@ -23,10 +23,15 @@ export function FileNode({
       source: imp.source,
     }))
   )
+  const maxImportChips = importChips.slice(0, 6)
+  const iRemnant = importChips.length - 6
+
+  const maxExportChips = data.exports.slice(0, 3)
+  const eRemnant = data.exports.length - 3
 
   return (
     <div
-      className={`w-52 rounded-lg border bg-background px-3 py-2 text-sm shadow-sm ${selected ? "border-blue-500 ring-1 ring-blue-500" : "border-border"} `}
+      className={`max-w-55 min-w-52 rounded-lg border bg-background px-3 py-2 text-sm shadow-sm ${selected ? "border-blue-500 ring-1 ring-blue-500" : "border-border"} `}
       onClick={() => {
         router.push(`#${data.path}`)
         setDetailsOpen(true)
@@ -43,7 +48,7 @@ export function FileNode({
 
       {importChips.length > 0 && (
         <div className="mb-1 flex flex-wrap gap-1">
-          {importChips.map((chip) => (
+          {maxImportChips.map((chip) => (
             <span
               key={`${chip.source}:${chip.name}`}
               className={cn(
@@ -56,12 +61,17 @@ export function FileNode({
               {chip.name}
             </span>
           ))}
+          {iRemnant > 0 && (
+            <span className="rounded bg-emerald-100 px-1.5 py-0.5 font-mono text-xs text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+              +{iRemnant}
+            </span>
+          )}
         </div>
       )}
 
       {data.exports.length > 0 && (
         <div className="flex flex-wrap gap-1">
-          {data.exports.map((exportName) => (
+          {maxExportChips.map((exportName) => (
             <span
               key={exportName}
               className="rounded bg-orange-100 px-1.5 py-0.5 font-mono text-xs text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
@@ -69,6 +79,11 @@ export function FileNode({
               {exportName}
             </span>
           ))}
+          {eRemnant > 0 && (
+            <span className="rounded bg-orange-100 px-1.5 py-0.5 font-mono text-xs text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
+              +{eRemnant}
+            </span>
+          )}
         </div>
       )}
 
