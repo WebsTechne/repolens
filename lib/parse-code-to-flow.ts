@@ -1,3 +1,5 @@
+"use server"
+
 import path from "path"
 import { Project, SourceFile, SyntaxKind } from "ts-morph"
 import type { CompilerOptions } from "ts-morph"
