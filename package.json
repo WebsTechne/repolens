@@ -6,7 +6,7 @@
   "scripts": {
     "build:worker": "tsc -p tsconfig.worker.json && node scripts/rename-worker.cjs",
     "dev": "npm run build:worker && next dev --turbopack",
-    "build": "npm run build:worker && next build",
+    "build": "npm run build:worker && next build --no-turbopack",
     "start": "next start",
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
