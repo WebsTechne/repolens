@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server"
-import { Worker } from "worker_threads"
 import { unzipGitHubCodeFiles } from "@/lib/ziputil"
 import { buildFileTree } from "@/lib/build-file-tree"
 import path from "path"
@@ -16,10 +15,11 @@ import type {
  * Runs ts-morph parsing in a worker thread to avoid blocking the main server
  * Uses tsx to execute TypeScript directly in the worker
  */
-function parseInWorker(
+async function parseInWorker(
   codeFiles: CodeFiles,
   tsconfigContent?: string
 ): Promise<ParseResult> {
+  const { Worker } = await import("worker_threads")
   return new Promise((resolve, reject) => {
     // Point directly at the TS worker file
     const workerPath = path.join(
