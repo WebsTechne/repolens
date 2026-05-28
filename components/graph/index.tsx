@@ -117,7 +117,11 @@ function GraphContent({
 
   return (
     <ReactFlow
-      defaultEdgeOptions={{ type: "straight", animated: true }}
+      defaultEdgeOptions={{
+        type: "straight",
+        animated: true,
+        style: { strokeWidth: 2.5 },
+      }}
       nodeTypes={nodeTypes}
       colorMode={colorMode}
       nodes={nodes}
