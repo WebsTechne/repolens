@@ -109,57 +109,84 @@ export function DetailsPanel() {
         <div className="section">
           {nodeData ? (
             <div className="space-y-4">
-              <div>
-                <h3 className="mb-1 text-sm font-medium text-muted-foreground">
-                  Filename
-                </h3>
-                <p className="font-mono text-sm">{nodeData.filename}</p>
-              </div>
-              <div>
-                <h3 className="mb-1 text-sm font-medium text-muted-foreground">
-                  Path
-                </h3>
-                <p className="font-mono text-sm break-all">{nodeData.path}</p>
-              </div>
-              {nodeData.imports.length > 0 && (
-                <div>
-                  <h3 className="mb-2 text-sm font-medium text-muted-foreground">
-                    Imports ({nodeData.imports.length})
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {nodeData.imports.map((imp, idx) => (
-                      <span
-                        key={`${imp.source}-${idx}`}
-                        className={cn(
-                          "rounded-md px-2 py-1 font-mono text-xs",
-                          imp.kind === "external"
-                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
-                            : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
-                        )}
-                      >
-                        {imp.source}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {nodeData.exports.length > 0 && (
-                <div>
-                  <h3 className="mb-2 text-sm font-medium text-muted-foreground">
-                    Exports ({nodeData.exports.length})
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {nodeData.exports.map((exp) => (
-                      <span
-                        key={exp}
-                        className="rounded-md bg-orange-100 px-2 py-1 font-mono text-xs text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
-                      >
-                        {exp}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {(() => {
+                const localImports = nodeData.imports.filter(
+                  (imp) => imp.kind === "local"
+                )
+                const externalImports = nodeData.imports.filter(
+                  (imp) => imp.kind === "external"
+                )
+
+                return (
+                  <>
+                    <div>
+                      <h3 className="mb-1 text-sm font-medium text-muted-foreground">
+                        Filename
+                      </h3>
+                      <p className="font-mono text-sm">{nodeData.filename}</p>
+                    </div>
+                    <div>
+                      <h3 className="mb-1 text-sm font-medium text-muted-foreground">
+                        Path
+                      </h3>
+                      <p className="font-mono text-sm break-all">
+                        {nodeData.path}
+                      </p>
+                    </div>
+                    {localImports.length > 0 && (
+                      <div>
+                        <h3 className="mb-2 text-sm font-medium text-muted-foreground">
+                          Local Imports ({localImports.length})
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {localImports.map((imp, idx) => (
+                            <span
+                              key={`${imp.source}-${idx}`}
+                              className="rounded-md bg-blue-100 px-2 py-1 font-mono text-xs text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+                            >
+                              {imp.source}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {externalImports.length > 0 && (
+                      <div>
+                        <h3 className="mb-2 text-sm font-medium text-muted-foreground">
+                          Node Modules ({externalImports.length})
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {externalImports.map((imp, idx) => (
+                            <span
+                              key={`${imp.source}-${idx}`}
+                              className="rounded-md bg-emerald-100 px-2 py-1 font-mono text-xs text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
+                            >
+                              {imp.source}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {nodeData.exports.length > 0 && (
+                      <div>
+                        <h3 className="mb-2 text-sm font-medium text-muted-foreground">
+                          Exports ({nodeData.exports.length})
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {nodeData.exports.map((exp) => (
+                            <span
+                              key={exp}
+                              className="rounded-md bg-orange-100 px-2 py-1 font-mono text-xs text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
+                            >
+                              {exp}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )
+              })()}
             </div>
           ) : (
             <div className="flex h-[calc(100%-4rem)] items-center justify-center">

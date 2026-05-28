@@ -23,11 +23,27 @@ export function FileNode({
       source: imp.source,
     }))
   )
-  const maxImportChips = importChips.slice(0, 6)
-  const iRemnant = importChips.length - 6
+
+  const localImportChips = importChips.filter((chip) => chip.kind === "local")
+  const externalImportChips = importChips.filter(
+    (chip) => chip.kind === "external"
+  )
+
+  const localModuleCount = data.imports.filter(
+    (imp) => imp.kind === "local"
+  ).length
+  const externalModuleCount = data.imports.filter(
+    (imp) => imp.kind === "external"
+  ).length
+
+  const maxLocalImportChips = localImportChips.slice(0, 4)
+  const localRemnant = Math.max(localModuleCount - 4, 0)
+
+  const maxExternalImportChips = externalImportChips.slice(0, 6)
+  const externalRemnant = Math.max(externalModuleCount - 6, 0)
 
   const maxExportChips = data.exports.slice(0, 3)
-  const eRemnant = data.exports.length - 3
+  const eRemnant = Math.max(data.exports.length - 3, 0)
 
   return (
     <div
@@ -46,24 +62,32 @@ export function FileNode({
         {data.path}
       </p>
 
-      {importChips.length > 0 && (
+      {(localImportChips.length > 0 || externalImportChips.length > 0) && (
         <div className="mb-1 flex flex-wrap gap-1">
-          {maxImportChips.map((chip) => (
+          {maxLocalImportChips.map((chip) => (
             <span
               key={`${chip.source}:${chip.name}`}
-              className={cn(
-                "rounded px-1.5 py-0.5 font-mono text-xs",
-                chip.kind === "external"
-                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
-                  : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
-              )}
+              className="rounded bg-blue-100 px-1.5 py-0.5 font-mono text-xs text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
             >
               {chip.name}
             </span>
           ))}
-          {iRemnant > 0 && (
+          {localRemnant > 0 && (
+            <span className="rounded bg-blue-100 px-1.5 py-0.5 font-mono text-xs text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+              +{localRemnant}
+            </span>
+          )}
+          {maxExternalImportChips.map((chip) => (
+            <span
+              key={`${chip.source}:${chip.name}`}
+              className="rounded bg-emerald-100 px-1.5 py-0.5 font-mono text-xs text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
+            >
+              {chip.name}
+            </span>
+          ))}
+          {externalRemnant > 0 && (
             <span className="rounded bg-emerald-100 px-1.5 py-0.5 font-mono text-xs text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
-              +{iRemnant}
+              +{externalRemnant}
             </span>
           )}
         </div>

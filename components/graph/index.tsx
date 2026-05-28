@@ -64,7 +64,6 @@ function GraphContent({
   }, [storeNodes, storeEdges])
 
   const [nodes, setNodes] = useState(layoutedNodes)
-  console.log(nodes)
 
   const [edges, setEdges] = useState(layoutedEdges)
 
