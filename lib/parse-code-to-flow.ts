@@ -8,7 +8,7 @@ import type {
   Import,
   CodeFiles,
   ParseResult,
-} from "@/app/types/types"
+} from "../app/types/types.js"
 
 /**
  * Parses code files using ts-morph and generates React Flow nodes and edges
@@ -74,7 +74,8 @@ export function parseCodeToFlow(
 
   // Add all files to the virtual project
   const sourceFiles: Map<string, SourceFile> = new Map()
-  for (const [filePath, content] of Object.entries(codeFiles)) {
+  for (const filePath of Object.keys(codeFiles)) {
+    const content = codeFiles[filePath]
     const sourceFile = project.createSourceFile(filePath, content, {
       overwrite: true,
     })

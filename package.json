@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "build:worker": "tsc -p tsconfig.worker.json && node scripts/rename-worker.cjs",
+    "build:worker": "tsc -p tsconfig.worker.json",
     "dev": "npm run build:worker && next dev --turbopack",
     "build": "npm run build:worker && next build",
     "start": "next start",

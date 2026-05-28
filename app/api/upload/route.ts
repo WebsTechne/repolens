@@ -3,6 +3,8 @@ import { Worker } from "worker_threads"
 import { unzipGitHubCodeFiles } from "@/lib/ziputil"
 import { buildFileTree } from "@/lib/build-file-tree"
 import path from "path"
+
+export const runtime = "nodejs"
 import type {
   ParseResult,
   WorkerResponse,
@@ -24,7 +26,7 @@ function parseInWorker(
       process.cwd(),
       "worker-dist",
       "lib",
-      "parse-worker.cjs"
+      "parse-worker.js"
     )
 
     const worker = new Worker(workerPath)
