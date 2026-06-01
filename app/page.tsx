@@ -80,13 +80,6 @@ export default function Page() {
       const data = await response.json()
 
       if (response.ok && data.success) {
-        // Log full data to console for inspection
-        console.log("=== FLOW DATA RECEIVED FROM SERVER ===")
-        console.log("Nodes:", data.flowData.nodes)
-        console.log("Edges:", data.flowData.edges)
-        console.log("File Tree:", data.fileTree)
-        console.log("======================================")
-
         // Save to store and IndexedDB (including fileTree)
         await setFlowData({
           nodes: data.flowData.nodes,
@@ -137,7 +130,16 @@ export default function Page() {
   // Show upload UI
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-6 rounded-lg border p-6">
+      <div className="relative w-full max-w-md space-y-6 rounded-lg border p-6">
+        <Button variant="outline" className="absolute top-4 right-4">
+          <a
+            href="https://github.com/WebsTechne/repolens"
+            target="_blank"
+            rel="noreferrer"
+          >
+            View on GitHub
+          </a>
+        </Button>
         <div className="space-y-2">
           <h1 className="text-2xl font-bold">RepoLens</h1>
           <p className="text-sm text-muted-foreground">

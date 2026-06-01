@@ -1,9 +1,4 @@
-import type {
-  FileTree,
-  FolderTreeItem,
-  TreeItem,
-  CodeFiles,
-} from "@/app/types/types"
+import type { FileTree, FolderTreeItem, CodeFiles } from "@/app/types/types"
 
 /**
  * Builds a hierarchical file tree from flat file paths
@@ -68,5 +63,3 @@ function addPathToTree(root: FolderTreeItem, filePath: string): void {
     path: filePath,
   })
 }
-
-// Made with Bob

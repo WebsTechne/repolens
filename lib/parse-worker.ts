@@ -1,6 +1,6 @@
 import { parentPort } from "worker_threads"
-import { parseCodeToFlow } from "./parse-code-to-flow"
-import type { WorkerMessage, WorkerResponse } from "../app/types/types"
+import { parseCodeToFlow } from "./parse-code-to-flow.js"
+import type { WorkerMessage, WorkerResponse } from "../app/types/types.js"
 
 /**
  * Worker thread for parsing code files with ts-morph
