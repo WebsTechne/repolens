@@ -109,15 +109,21 @@ export async function POST(
 
     // Extract code files from ZIP
     let codeFiles: CodeFiles
+    let tsconfigContent: string | undefined
     let fileCount = 0
 
     try {
       console.log("[Server] Extracting files from ZIP...")
       const arrayBuffer = await file.arrayBuffer()
-      codeFiles = await unzipGitHubCodeFiles(arrayBuffer)
+      const extracted = await unzipGitHubCodeFiles(arrayBuffer)
+      codeFiles = extracted.codeFiles
+      tsconfigContent = extracted.tsconfigContent
       fileCount = Object.keys(codeFiles).length
 
       console.log(`[Server] Successfully extracted ${fileCount} code files`)
+      if (tsconfigContent) {
+        console.log("[Server] Found root tsconfig.json in ZIP")
+      }
     } catch (zipError) {
       const errorMessage =
         zipError instanceof Error ? zipError.message : "Unknown ZIP error"
@@ -150,7 +156,7 @@ export async function POST(
 
     try {
       console.log("[Server] Starting code parsing in worker thread...")
-      flowData = await parseInWorker(codeFiles)
+      flowData = await parseInWorker(codeFiles, tsconfigContent)
       console.log(
         `[Server] Parsing complete: ${flowData.nodes.length} nodes, ${flowData.edges.length} edges`
       )

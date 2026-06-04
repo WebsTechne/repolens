@@ -1,4 +1,5 @@
 import path from "path"
+import ts from "typescript"
 import { Project, SourceFile, SyntaxKind } from "ts-morph"
 import type { CompilerOptions } from "ts-morph"
 import type {
@@ -35,24 +36,36 @@ export function parseCodeToFlow(
   // Parse tsconfig and use its compiler options
   if (tsconfigContent) {
     try {
-      const tsconfig = JSON.parse(tsconfigContent)
+      const parsedText = ts.parseConfigFileTextToJson(
+        "tsconfig.json",
+        tsconfigContent
+      )
 
-      if (tsconfig.compilerOptions) {
-        // Use tsconfig compiler options
-        compilerOptions = {
-          ...compilerOptions,
-          ...tsconfig.compilerOptions,
-        }
-        console.log(
-          "[Parser] Using tsconfig.json compiler options for ts-morph project"
+      if (parsedText.error) {
+        throw new Error(
+          ts.flattenDiagnosticMessageText(parsedText.error.messageText, "\n")
         )
+      }
 
-        if (tsconfig.compilerOptions.paths) {
-          pathMappings = tsconfig.compilerOptions.paths
-        }
-        if (tsconfig.compilerOptions.baseUrl) {
-          baseUrl = tsconfig.compilerOptions.baseUrl
-        }
+      const parsedConfig = ts.parseJsonConfigFileContent(
+        parsedText.config,
+        ts.sys,
+        process.cwd()
+      )
+
+      compilerOptions = {
+        ...compilerOptions,
+        ...parsedConfig.options,
+      }
+      console.log(
+        "[Parser] Using parsed tsconfig.json compiler options for ts-morph project"
+      )
+
+      if (parsedConfig.options.paths) {
+        pathMappings = parsedConfig.options.paths
+      }
+      if (parsedConfig.options.baseUrl) {
+        baseUrl = parsedConfig.options.baseUrl
       }
     } catch (error) {
       console.warn(

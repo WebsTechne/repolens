@@ -39,5 +39,3 @@ parentPort.on("message", (message: WorkerMessage) => {
     parentPort.postMessage(response)
   }
 })
-
-// Made with Bob
