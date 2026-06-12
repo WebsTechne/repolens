@@ -14,6 +14,8 @@ import { ScrollArea } from "./ui/scroll-area"
 import Image from "next/image"
 import { Switch } from "./ui/switch"
 import { Skeleton } from "./ui/skeleton"
+import { marked } from "marked"
+import DOMPurify from "dompurify"
 
 export function DetailsPanel() {
   const { detailsOpen, toggleDetails } = useDetails()
@@ -28,7 +30,7 @@ export function DetailsPanel() {
   })
 
   const [aiMode, setAiMode] = useState(false)
-  const resolvedRef = branchName || "main"
+  const resolvedRef = branchName || "HEAD"
 
   const aiSummaryQuery = useQuery({
     queryKey: ["ai-summary", username, repoName, resolvedRef, nodeData?.path],
@@ -40,7 +42,7 @@ export function DetailsPanel() {
         body: JSON.stringify({
           owner: username,
           repo: repoName,
-          filePath: nodeData?.path,
+          filePath: nodeData.path,
           ref: resolvedRef,
           prompt:
             "Provide a concise summary of this file, including its responsibility and key exports.",
@@ -202,8 +204,8 @@ export function DetailsPanel() {
         {nodeData && (
           <div
             className={cn(
-              "mx-2 overflow-clip rounded-lg border bg-background p-3 duration-230",
-              aiMode ? "h-60" : "h-18"
+              "mx-2 rounded-lg border bg-background p-3 duration-230",
+              aiMode ? "h-60 overflow-y-scroll" : "h-18 overflow-clip"
             )}
           >
             <div
@@ -250,9 +252,17 @@ export function DetailsPanel() {
                     : "Failed to load summary"}
                 </p>
               ) : (
-                <p className="text-sm leading-relaxed text-foreground">
-                  {aiSummaryQuery.data || "No summary available for this file."}
-                </p>
+                <div
+                  className="text-sm leading-relaxed text-foreground"
+                  dangerouslySetInnerHTML={{
+                    __html: DOMPurify.sanitize(
+                      marked.parse(
+                        aiSummaryQuery.data ||
+                          "No summary available for this file."
+                      ) as string
+                    ),
+                  }}
+                ></div>
               )
             ) : (
               <></>
