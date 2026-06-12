@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "nodenext",
+    "target": "es2020",
+    "moduleResolution": "nodenext",
+    "outDir": "worker-dist",
+    "noEmit": false,
+    "allowImportingTsExtensions": false,
+    "declaration": false,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"],
+    },
+  },
+  "include": [
+    "lib/parse-worker.ts",
+    "lib/parse-code-to-flow.ts",
+    "app/types/**/*",
+  ],
+  "exclude": ["worker-dist", "node_modules"],
+}
