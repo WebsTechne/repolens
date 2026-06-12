@@ -20,7 +20,12 @@ export function DetailsPanel() {
   const { nodes } = useFlowStore()
   const { username, repoName, branchName } = useRepoStore()
   const [currentHash, setCurrentHash] = useState("")
-  const [nodeData, setNodeData] = useState<NodeData | null>(null)
+  const [nodeData, setNodeData] = useState<NodeData>({
+    filename: "",
+    path: "",
+    imports: [],
+    exports: [],
+  })
 
   const [aiMode, setAiMode] = useState(false)
   const resolvedRef = branchName || "main"
@@ -61,6 +66,12 @@ export function DetailsPanel() {
 
   // Track hash changes
   useEffect(() => {
+    const defaultNode = {
+      filename: "",
+      path: "",
+      imports: [],
+      exports: [],
+    }
     const updateHash = () => {
       const hash = window.location.hash.slice(1) // Remove the # prefix
       setCurrentHash(hash)
@@ -68,9 +79,9 @@ export function DetailsPanel() {
       // Find matching node data
       if (hash) {
         const matchingNode = nodes.find((node) => node.data.path === hash)
-        setNodeData(matchingNode?.data || null)
+        setNodeData(matchingNode?.data || defaultNode)
       } else {
-        setNodeData(null)
+        setNodeData(defaultNode)
       }
     }
 
@@ -88,6 +99,18 @@ export function DetailsPanel() {
       clearInterval(interval)
     }
   }, [nodes])
+
+  // Imports and exports chip
+
+  const importChips = nodeData.imports.flatMap((imp) =>
+    imp.names.map((name) => ({
+      name,
+      kind: imp.kind,
+      source: imp.source,
+    }))
+  )
+  const localImports = importChips.filter((imp) => imp.kind === "local")
+  const externalImports = importChips.filter((imp) => imp.kind === "external")
 
   return (
     <section
@@ -107,94 +130,73 @@ export function DetailsPanel() {
         </div>
 
         <div className="section">
-          {nodeData ? (
-            <div className="space-y-4">
-              {(() => {
-                const localImports = nodeData.imports.filter(
-                  (imp) => imp.kind === "local"
-                )
-                const externalImports = nodeData.imports.filter(
-                  (imp) => imp.kind === "external"
-                )
-
-                return (
-                  <>
-                    <div>
-                      <h3 className="mb-1 text-sm font-medium text-muted-foreground">
-                        Filename
-                      </h3>
-                      <p className="font-mono text-sm">{nodeData.filename}</p>
-                    </div>
-                    <div>
-                      <h3 className="mb-1 text-sm font-medium text-muted-foreground">
-                        Path
-                      </h3>
-                      <p className="font-mono text-sm break-all">
-                        {nodeData.path}
-                      </p>
-                    </div>
-                    {localImports.length > 0 && (
-                      <div>
-                        <h3 className="mb-2 text-sm font-medium text-muted-foreground">
-                          Local Imports ({localImports.length})
-                        </h3>
-                        <div className="flex flex-wrap gap-2">
-                          {localImports.map((imp, idx) => (
-                            <span
-                              key={`${imp.source}-${idx}`}
-                              className="rounded-md bg-blue-100 px-2 py-1 font-mono text-xs text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
-                            >
-                              {imp.source}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {externalImports.length > 0 && (
-                      <div>
-                        <h3 className="mb-2 text-sm font-medium text-muted-foreground">
-                          Node Modules ({externalImports.length})
-                        </h3>
-                        <div className="flex flex-wrap gap-2">
-                          {externalImports.map((imp, idx) => (
-                            <span
-                              key={`${imp.source}-${idx}`}
-                              className="rounded-md bg-emerald-100 px-2 py-1 font-mono text-xs text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
-                            >
-                              {imp.source}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {nodeData.exports.length > 0 && (
-                      <div>
-                        <h3 className="mb-2 text-sm font-medium text-muted-foreground">
-                          Exports ({nodeData.exports.length})
-                        </h3>
-                        <div className="flex flex-wrap gap-2">
-                          {nodeData.exports.map((exp) => (
-                            <span
-                              key={exp}
-                              className="rounded-md bg-orange-100 px-2 py-1 font-mono text-xs text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
-                            >
-                              {exp}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )
-              })()}
-            </div>
-          ) : (
-            <div className="flex h-[calc(100%-4rem)] items-center justify-center">
-              <p className="rounded-md border p-2 text-sm text-muted-foreground">
-                There was an error loading this file. Please try again.
-              </p>
-            </div>
-          )}
+          <div className="space-y-4">
+            <>
+              <div>
+                <h3 className="mb-1 text-sm font-medium text-muted-foreground">
+                  Filename
+                </h3>
+                <p className="font-mono text-sm">{nodeData.filename}</p>
+              </div>
+              <div>
+                <h3 className="mb-1 text-sm font-medium text-muted-foreground">
+                  Path
+                </h3>
+                <p className="font-mono text-sm break-all">{nodeData.path}</p>
+              </div>
+            </>
+            {localImports.length > 0 && (
+              <div>
+                <h3 className="mb-2 text-sm font-medium text-muted-foreground">
+                  Local Imports ({localImports.length})
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {localImports.map((imp, idx) => (
+                    <span
+                      key={`${imp.source}-${idx}`}
+                      className="rounded-md bg-blue-100 px-2 py-1 font-mono text-xs text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+                    >
+                      {imp.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {externalImports.length > 0 && (
+              <div>
+                <h3 className="mb-2 text-sm font-medium text-muted-foreground">
+                  Node Modules ({externalImports.length})
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {externalImports.map((imp, idx) => (
+                    <span
+                      key={`${imp.source}-${idx}`}
+                      className="rounded-md bg-emerald-100 px-2 py-1 font-mono text-xs text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
+                    >
+                      {imp.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {nodeData.exports.length > 0 && (
+              <div>
+                <h3 className="mb-2 text-sm font-medium text-muted-foreground">
+                  Exports ({nodeData.exports.length})
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {nodeData.exports.map((exp) => (
+                    <span
+                      key={exp}
+                      className="rounded-md bg-orange-100 px-2 py-1 font-mono text-xs text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
+                    >
+                      {exp}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {nodeData && (

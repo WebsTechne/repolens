@@ -29,10 +29,10 @@ export function FileNode({
     (chip) => chip.kind === "external"
   )
 
-  const localModuleCount = data.imports.filter(
+  const localModuleCount = importChips.filter(
     (imp) => imp.kind === "local"
   ).length
-  const externalModuleCount = data.imports.filter(
+  const externalModuleCount = importChips.filter(
     (imp) => imp.kind === "external"
   ).length
 
