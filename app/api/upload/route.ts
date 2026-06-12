@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { unzipGitHubCodeFiles } from "@/lib/ziputil"
 import { buildFileTree } from "@/lib/build-file-tree"
 import path from "path"
+import { Worker } from "worker_threads"
 
 export const runtime = "nodejs"
 import type {
